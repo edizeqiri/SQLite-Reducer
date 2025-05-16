@@ -1,5 +1,5 @@
-mod parser;
 mod driver;
+mod parser;
 
 use clap::Parser;
 use log::*;
@@ -20,8 +20,6 @@ fn main() {
         "queries/query1/original_test.sql".parse().unwrap(),
     );
 }
-
-
 
 fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
     let query_path = pwd.join(args.query);

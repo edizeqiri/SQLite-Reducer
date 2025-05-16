@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use std::process::Command;
 use log::info;
 use sqlparser::ast::Query;
+use std::path::PathBuf;
+use std::process::Command;
 
 pub fn test_query(test: PathBuf, reduced_query_file: PathBuf) -> bool {
     let output = Command::new(test)
@@ -13,6 +13,4 @@ pub fn test_query(test: PathBuf, reduced_query_file: PathBuf) -> bool {
     true
 }
 
-fn save_query(query: String) {
-    
-}
+fn save_query(query: String) {}

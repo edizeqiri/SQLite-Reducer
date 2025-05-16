@@ -9,5 +9,3 @@ pub fn generate_ast(sql: &str) -> Vec<Statement> {
     info!("AST: {:?}", ast);
     ast.unwrap_or_default()
 }
-
-
