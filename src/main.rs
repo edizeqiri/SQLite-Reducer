@@ -11,7 +11,7 @@ fn main() {
     let (args, pwd) = init();
 
     let (query, test_path) = read_and_parse_args(args, pwd);
-    
+
     parser::generate_ast(&query);
 
     test_query(
