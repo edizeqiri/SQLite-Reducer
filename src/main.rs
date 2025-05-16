@@ -1,3 +1,5 @@
+mod parser;
+
 use clap::Parser;
 use log::*;
 use std::path::PathBuf;
@@ -9,10 +11,13 @@ fn main() {
     let (args, pwd) = init();
 
     let (querys, test_path) = read_and_parse_args(args, pwd);
+    
+    parser::generate_ast(&querys);
+
     test_query(
         test_path,
         "queries/query1/original_test.sql".parse().unwrap(),
-    )
+    );
 }
 
 fn test_query(test: PathBuf, reduced_query_file: PathBuf) {
