@@ -10,9 +10,9 @@ use std::{env, fs};
 fn main() {
     let (args, pwd) = init();
 
-    let (querys, test_path) = read_and_parse_args(args, pwd);
+    let (query, test_path) = read_and_parse_args(args, pwd);
     
-    parser::generate_ast(&querys);
+    parser::generate_ast(&query);
 
     test_query(
         test_path,
