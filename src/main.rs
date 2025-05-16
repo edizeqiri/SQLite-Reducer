@@ -2,42 +2,35 @@ use clap::Parser;
 use std::path::PathBuf;
 use log::*;
 use std::{env, fs};
-use std::path::Component::CurDir;
 use std::process::Command;
 
 // ./reducer –query <query-to-minimize –test <an arbitrary-script>
 fn main() {
     let (args, pwd) = init();
 
-    read_and_parse_args(args,pwd);
-
+    let (querys, test_path) = read_and_parse_args(args,pwd);
+    test_query(test_path, "queries/query1/original_test.sql".parse().unwrap())
 }
 
-fn testQuery(test: String, reducedQueryFile: String) {
+fn test_query(test: PathBuf, reduced_query_file: PathBuf) {
 
-    let output = if cfg!(target_os = "windows") {
-        Command::new("cmd")
-            .args(["/C", "echo hello"])
+    let output = Command::new(test)
+            .arg(reduced_query_file)
             .output()
-            .expect("failed to execute process")
-    } else {
-        Command::new("sh")
-            .arg("-c")
-            .arg("echo hello")
-            .output()
-            .expect("failed to execute process")
-    };
+            .expect("failed to execute process");
 
-    let hello = output.stdout;
+    info!("{:?}", output)
 }
 
-fn read_and_parse_args(args: Cli, pwd: PathBuf) {
-    let query = fs::read_to_string(pwd.join(args.query))
-        .expect("Should have been able to read the query file");
+fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
+    let query_path = pwd.join(args.query);
+    info!("{:?}" ,query_path);
+    let query = fs::read_to_string(query_path)
+        .expect("Should have been able to read the query file: `query_path`");
 
-    let test = fs::read_to_string(pwd.join(args.test))
-        .expect("Should have been able to read the test file");
     info!("Query is:\n{query}");
+
+    (query, pwd.join(args.test))
 }
 
 fn init() -> (Cli, PathBuf) {
