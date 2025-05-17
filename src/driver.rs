@@ -10,9 +10,15 @@ pub fn test_query(test: PathBuf, reduced_query_file: PathBuf) -> bool {
         .output()
         .expect("failed to execute process");
 
-    let biep = from_utf8(&output.stdout);
-    info!("{:?}", biep);
-    true
+    let script_output = from_utf8(&output.stdout);
+
+    match &script_output {
+        Ok("0") => false,
+        Ok("1") => true,
+        Ok(other) => panic!("Expected 0 or 1. But got:\n{other}"),
+        Err(e) => panic!("Couldn't read output from terminal. Error:\n{e}")
+    }
+
 }
 
 fn save_query(query: String) {}
