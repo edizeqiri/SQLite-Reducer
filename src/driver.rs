@@ -15,7 +15,7 @@ pub fn test_query(test: PathBuf, reduced_query_file: PathBuf) -> bool {
     match &script_output {
         Ok("0") => false,
         Ok("1") => true,
-        Ok(other) => panic!("Expected 0 or 1. But got:\n{other}"),
+        Ok(other) => panic!("Expected 0 or 1. But got: {other}"),
         Err(e) => panic!("Couldn't read output from terminal. Error:\n{e}")
     }
 

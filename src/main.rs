@@ -1,11 +1,13 @@
 mod driver;
 mod parser;
+mod reducer;
 
 use clap::Parser;
 use log::*;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
+use sqlparser::ast::Statement;
 
 // ./reducer –query <query-to-minimize –test <an arbitrary-script>
 fn main() {
@@ -13,7 +15,10 @@ fn main() {
 
     let (query, test_path) = read_and_parse_args(args, pwd);
 
-    parser::generate_ast(&query);
+    parser::generate_ast(&query)
+        .and_then(
+            |ast| Ok(reducer::reduce(ast))
+        ).expect("TODO: panic message");
 
     driver::test_query(
         test_path,

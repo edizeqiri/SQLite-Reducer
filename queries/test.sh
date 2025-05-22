@@ -31,4 +31,5 @@ if [ ! -r "$FILE_PATH" ]; then
 fi
 
 # Finally, output the file contents
-cat -- "$FILE_PATH"
+#cat -- "$FILE_PATH"
+echo 1

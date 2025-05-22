@@ -1,11 +1,11 @@
 use log::info;
 use sqlparser::ast::Statement;
 use sqlparser::dialect::GenericDialect;
-use sqlparser::parser::Parser;
+use sqlparser::parser::{Parser, ParserError};
 
-pub fn generate_ast(sql: &str) -> Vec<Statement> {
-    let dialect = GenericDialect {}; // or AnsiDialect, or your own dialect ...
-    let ast = Parser::parse_sql(&dialect, sql);
-    info!("AST: {:?}", ast);
-    ast.unwrap_or_default()
+pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, ParserError> {
+    let dialect = GenericDialect {};
+    let stmts = Parser::parse_sql(&dialect, sql)?;
+    info!("AST: {:#?}", stmts);
+    Ok(stmts)
 }
