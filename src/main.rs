@@ -21,9 +21,9 @@ fn main() {
 
     let test_output = driver::test_query(
         test_path,
-        "queries/query1/original_test.sql".parse().unwrap()
+        "queries/query1/original_test.sql".parse().unwrap(),
     );
-    
+
     info!("Test output: {:?}", test_output);
 }
 
