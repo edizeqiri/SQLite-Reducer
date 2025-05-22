@@ -19,10 +19,12 @@ fn main() {
         .and_then(|ast| Ok(reducer::reduce(ast)))
         .expect("TODO: panic message");
 
-    driver::test_query(
+    let test_output = driver::test_query(
         test_path,
-        "queries/query1/original_test.sql".parse().unwrap(),
+        "queries/query1/original_test.sql".parse().unwrap()
     );
+    
+    info!("Test output: {:?}", test_output);
 }
 
 fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
