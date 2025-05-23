@@ -1,7 +1,6 @@
-use std::path::PathBuf;
-use sqlparser::ast::Statement;
 use crate::driver::{test_query, Setup};
-
+use sqlparser::ast::Statement;
+use std::path::PathBuf;
 
 pub fn ddmin(mut stmts: Vec<Statement>, setup: Setup) -> Vec<Statement> {
     /// Try removing one of `n` chunks from `stmts`.  If removing chunk `i` still fails,
