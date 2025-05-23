@@ -17,13 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (query, test_path) = read_and_parse_args(args, pwd);
 
     let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
-    
+
     let oracle = driver::init_query(test_path.clone(), query.clone());
     info!("Init output: {:?}", oracle);
 
     let test_reduce = driver::test_query(test_path, query, oracle?);
     info!("Test output: {:?}", test_reduce);
-    
+
     Ok(())
 }
 
