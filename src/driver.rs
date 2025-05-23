@@ -4,13 +4,20 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
 use std::str::{from_utf8, Utf8Error};
+use sqlparser::ast::helpers::stmt_data_loading::StageLoadSelectItem;
+use sqlparser::ast::Query;
+
+#[derive(Clone)]
+pub struct Setup {
+    pub test: PathBuf,
+    pub oracle: String,
+}
 
 pub fn test_query(
-    test: PathBuf,
-    reduced_query: String,
-    oracle: String,
+    setup: Setup,
+    query: String,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let output = from_utf8(&get_output_from_query(test, reduced_query, oracle)?.stdout)? // -> &str
+    let output = from_utf8(&get_output_from_query(setup, query)?.stdout)? // -> &str
         .trim()
         .to_owned();
 
@@ -22,24 +29,22 @@ pub fn test_query(
 }
 
 pub fn init_query(
-    test: PathBuf,
-    reduced_query: String,
+    setup: Setup,
+    query: String
 ) -> Result<String, Box<dyn std::error::Error>> {
     Ok(
-        from_utf8(&get_output_from_query(test, reduced_query, "".to_string())?.stdout)? // -> &str
+        from_utf8(&get_output_from_query(setup, query)?.stdout)? // -> &str
             .trim() // -> &str
             .to_owned(), // -> String
     )
 }
 
 fn get_output_from_query(
-    test: PathBuf,
-    reduced_query: String,
-    get_oracle: String,
+    setup: Setup,
+    query: String
 ) -> io::Result<Output> {
-    info!("test: {test:?}, reduced_query: {reduced_query:?}, get_oracle: {get_oracle:?}");
-    Command::new(test)
-        .arg(&reduced_query)
-        .arg(get_oracle)
+    Command::new(setup.test)
+        .arg(query)
+        .arg(setup.oracle)
         .output()
 }

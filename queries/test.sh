@@ -25,6 +25,7 @@ output="$out_old,$out_new"
 # no oracle given => return oracle
 if [ -z "$oracle" ]; then
   echo "$output"
+  echo "$output;" >> /Users/saschatran/Desktop/Uni_gits/reducer/src/resources/expected_output_string.csv
   exit 0
 fi
 
