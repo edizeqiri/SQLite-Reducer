@@ -8,8 +8,9 @@ use std::str::{from_utf8, Utf8Error};
 pub fn test_query(
     test: PathBuf,
     reduced_query: String,
+    oracle: String,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let output = from_utf8(&get_output_from_query(test, reduced_query, "0")?.stdout)? // -> &str
+    let output = from_utf8(&get_output_from_query(test, reduced_query, oracle)?.stdout)? // -> &str
         .trim()
         .to_owned();
 
@@ -25,7 +26,7 @@ pub fn init_query(
     reduced_query: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     Ok(
-        from_utf8(&get_output_from_query(test, reduced_query, "1")?.stdout)? // -> &str
+        from_utf8(&get_output_from_query(test, reduced_query, "".to_string())?.stdout)? // -> &str
             .trim() // -> &str
             .to_owned(), // -> String
     )
@@ -34,7 +35,7 @@ pub fn init_query(
 fn get_output_from_query(
     test: PathBuf,
     reduced_query: String,
-    get_oracle: &str,
+    get_oracle: String,
 ) -> io::Result<Output> {
     info!("test: {test:?}, reduced_query: {reduced_query:?}, get_oracle: {get_oracle:?}");
     Command::new(test)

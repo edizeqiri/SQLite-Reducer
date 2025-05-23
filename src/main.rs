@@ -20,9 +20,13 @@ fn main() {
     .and_then(|ast| Ok(reducer::reduce(ast)))
     .expect("TODO: panic message");*/
 
-    let test_output = driver::init_query(test_path, query);
+    let oracle  = driver::init_query(test_path.clone(), query.clone());
+    info!("Init output: {:?}", oracle);
+    
+    let test_reduce = driver::test_query(test_path, query, oracle.expect("TODO: panic message"));
+    
+    info!("Test output: {:?}", test_reduce);
 
-    info!("Test output: {:?}", test_output);
 }
 
 fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
