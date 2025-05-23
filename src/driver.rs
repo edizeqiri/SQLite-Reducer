@@ -1,20 +1,35 @@
-use log::info;
-use sqlparser::ast::Query;
+use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::str::{from_utf8, Utf8Error};
+use std::process::Output;
+use log::info;
 
-pub fn test_query(test: PathBuf, reduced_query_file: PathBuf) -> Result<bool, Utf8Error> {
-    let output = Command::new(test)
-        .arg(reduced_query_file)
-        .output()
-        .expect("failed to execute process");
+pub fn test_query(test: PathBuf, reduced_query: String) -> Result<bool, Box<dyn std::error::Error>> {
+    let output = from_utf8(&get_output_from_query(test, reduced_query, "0")?.stdout)? // -> &str
+        .trim().to_owned()   ;
 
-    from_utf8(&output.stdout).and_then(|out| match out.trim() {
+    match output.as_str() {
         "0" => Ok(false),
         "1" => Ok(true),
         other => panic!("Expected 0 or 1, got `{}`", other),
-    })
+    }
 }
 
-fn save_query(query: String) {}
+pub fn init_query(test: PathBuf, reduced_query: String) -> Result<String, Box<dyn std::error::Error>> {
+    Ok(
+        from_utf8(&get_output_from_query(test, reduced_query, "1")?.stdout)? // -> &str
+            .trim()                                                         // -> &str
+            .to_owned()                                                     // -> String
+    )
+}
+
+fn get_output_from_query(test: PathBuf, reduced_query: String, get_oracle: &str) -> io::Result<Output> {
+    info!("test: {test:?}, reduced_query: {reduced_query:?}, get_oracle: {get_oracle:?}");
+    Command::new(test)
+        .arg(&reduced_query)
+        .arg(get_oracle)
+        .output()
+}
+
+
