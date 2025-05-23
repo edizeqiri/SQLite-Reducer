@@ -1,35 +1,31 @@
-#!/usr/bin/env bash
-
-# Usage: ./showfile.sh /path/to/file
-
-# Exit immediately on error, undefined variable, or pipe failure
-set -euo pipefail
+#!/bin/bash
 
 # Check for the required argument
-if [ $# -lt 1 ]; then
-  echo "Usage: $0 <file-path>"
+if [ $# -lt 2 ]; then
+  echo "Expected exactly 2 arguments, got $#"
   exit 1
 fi
 
-FILE_PATH="$1"
+query=$1
 
-# Check that the path exists and is a regular file
-if [ ! -e "$FILE_PATH" ]; then
-  echo "Error: '$FILE_PATH' does not exist."
-  exit 2
+# 2nd argument optional, default: ""
+oracle=$2
+
+# Docker stuff
+container="fuzzi"
+db_path_old="/usr/bin/sqlite3-3.26.0"
+db_path_new="/usr/bin/sqlite3-3.39.4"
+
+# Output
+out_old=$(docker exec -i "$container" "$db_path_old" -bail :memory: <<< $query 2>&1)
+out_new=$(docker exec -i "$container" "$db_path_new" -bail :memory: <<< $query 2>&1)
+
+output="$out_old,$out_new"
+
+# no oracle given => return oracle
+if [ -z "$oracle" ]; then
+  echo "$output"
+  exit 0
 fi
 
-if [ ! -f "$FILE_PATH" ]; then
-  echo "Error: '$FILE_PATH' is not a regular file."
-  exit 3
-fi
-
-# Check that the file is readable
-if [ ! -r "$FILE_PATH" ]; then
-  echo "Error: '$FILE_PATH' is not readable."
-  exit 4
-fi
-
-# Finally, output the file contents
-#cat -- "$FILE_PATH"
-echo 1
+echo $([[ "$output" == "$oracle" ]] && echo 1 || echo 0)
