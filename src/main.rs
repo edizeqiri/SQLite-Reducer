@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_reduce = driver::test_query(setup.clone(), query.clone());
     info!("Test output: {:?}", test_reduce);*/
 
-   // reduce_statements(parser::generate_ast(&query)?, setup);
+    // reduce_statements(parser::generate_ast(&query)?, setup);
 
     Ok(())
 }

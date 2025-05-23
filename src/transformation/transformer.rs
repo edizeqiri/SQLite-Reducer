@@ -1,7 +1,6 @@
-
+use crate::transformation::constant_fold::ConstantFold;
 use sqlparser::ast::Statement;
 use sqlparser::parser::Parser;
-use crate::transformation::constant_fold::ConstantFold;
 
 pub trait Transform {
     fn apply(&self, stmt: Statement) -> Statement;
@@ -20,7 +19,7 @@ pub enum TransformPass {
 impl Transform for TransformPass {
     fn apply(&self, stmt: Statement) -> Statement {
         match self {
-            TransformPass::ConstantFold(tf)        => tf.apply(stmt),
+            TransformPass::ConstantFold(tf) => tf.apply(stmt),
             /*TransformPass::PredicatePushdown(tf)  => tf.apply(stmt),
             TransformPass::ProjectionPrune(tf)    => tf.apply(stmt),
             TransformPass::FlattenSubqueries(tf)  => tf.apply(stmt),
@@ -29,9 +28,9 @@ impl Transform for TransformPass {
     }
 }
 
-pub fn transform(mut stmts: Vec<Statement>)  {
+pub fn transform(mut stmts: Vec<Statement>) {
     let transforms: Vec<TransformPass> = vec![
-        TransformPass::ConstantFold(ConstantFold{}),
+        TransformPass::ConstantFold(ConstantFold {}),
         /*TransformPass::PredicatePushdown(PredicatePushdown{}),
         TransformPass::ProjectionPrune(ProjectionPrune{}),
         TransformPass::FlattenSubqueries(FlattenSubqueries{}),
@@ -40,11 +39,10 @@ pub fn transform(mut stmts: Vec<Statement>)  {
 
     // 4) Run them
     for pass in &transforms {
-        stmts = stmts.clone()
+        stmts = stmts
+            .clone()
             .into_iter()
             .map(|stmt| pass.apply(stmt))
             .collect();
     }
-
-} 
-
+}
