@@ -11,21 +11,21 @@ use std::str::from_utf8;
 use std::{env, fs};
 
 // ./reducer –query <query-to-minimize –test <an arbitrary-script>
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (args, pwd) = init();
 
     let (query, test_path) = read_and_parse_args(args, pwd);
 
-    /*parser::generate_ast(&query)
-    .and_then(|ast| Ok(reducer::reduce(ast)))
-    .expect("TODO: panic message");*/
-
+    let ast = parser::generate_ast(&query)
+    .and_then(|ast| Ok(reducer::reduce(ast)));
+    
     let oracle  = driver::init_query(test_path.clone(), query.clone());
     info!("Init output: {:?}", oracle);
     
-    let test_reduce = driver::test_query(test_path, query, oracle.expect("TODO: panic message"));
+    let test_reduce = driver::test_query(test_path, query, oracle?);
     
     info!("Test output: {:?}", test_reduce);
+    Ok(())
 
 }
 
