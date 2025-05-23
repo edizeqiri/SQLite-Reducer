@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run with args" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
     <option name="buildProfileId" value="dev" />
-    <option name="command" value="run --package reducer --bin reducer -- --query queries/query1/original_test.sql --test queries/test.sh" />
+    <option name="command" value="run --package reducer --bin reducer -- --query queries/query2/original_test.sql --test queries/test.sh" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs>
       <env name="RUST_LOG" value="info" />

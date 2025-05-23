@@ -8,3 +8,4 @@ clap = { version = "4.5.38", features = ["derive"] }
 log = "0.4.27"
 env_logger = "0.10"
 sqlparser = "0.56.0"
+anyhow = "1.0.98"
