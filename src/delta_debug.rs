@@ -1,6 +1,6 @@
-use crate::driver::{test_query, Setup};
+use crate::driver::test_query;
 use std::error::Error;
-use std::path::PathBuf;
+
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>
@@ -18,12 +18,12 @@ where
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
-                .join("\n");
+                .join(";") + ";";
             let input_nabla = nabla
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
-                .join("\n");
+                .join(";") + ";";
 
             // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {
@@ -60,7 +60,7 @@ where
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
-            .join("\n");
+            .join(";") + ";";
         if test_query(&input)? {
             return find_one_minimal(&truncated);
         }
@@ -92,3 +92,19 @@ fn get_nabla<T: Clone + PartialEq>(data: &[T], delta: &[T]) -> Vec<T> {
         .cloned()
         .collect()
 }
+
+#[test]
+fn test_split_tests() {
+    let tests = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let parts = split_tests(&tests, 3);
+    assert_eq!(parts, vec![vec![1, 2, 3, 4], vec![5, 6, 7], vec![8, 9, 10]]);
+}
+
+#[test]
+fn test_get_nabla() {
+    let data = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let delta = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let nabla = get_nabla(&data, &delta);
+    assert_eq!(nabla, vec![10]);
+}
+
