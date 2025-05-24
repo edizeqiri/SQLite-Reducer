@@ -4,7 +4,7 @@ mod parser;
 mod reducer;
 mod transformation;
 
-use crate::driver::Setup;
+use crate::driver::{Setup, init_test_only, fill_oracle};
 use crate::reducer::reduce_statements;
 use clap::ArgAction::Set;
 use clap::Parser;
@@ -21,19 +21,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (query, test_path) = read_and_parse_args(args, pwd);
 
-    let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
+    //let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
 
-    /*let oracle = driver::init_query(test_path.clone(), query.clone());
+    init_test_only(&test_path);
+
+    let oracle = driver::init_query(&query);
     info!("Init output: {:?}", oracle);
 
-    let setup = Setup {
-        test: test_path.clone(),
-        oracle: oracle?.to_string(),
-    };
-    let test_reduce = driver::test_query(setup.clone(), query.clone());
-    info!("Test output: {:?}", test_reduce);*/
+    fill_oracle(&oracle?);
+    
+    let test_reduce = driver::test_query(&query);
+    info!("Test output: {:?}", test_reduce);
 
-    // reduce_statements(parser::generate_ast(&query)?, setup);
+    //reduce_statements(parser::generate_ast(&query)?, setup);
 
     Ok(())
 }
@@ -52,6 +52,7 @@ fn init() -> (Cli, PathBuf) {
 
     info!("query: {:?}, test: {:?}", args.query, args.test);
     let pwd: PathBuf = env::current_dir().unwrap();
+    println!("Current directory: {}", pwd.display());
 
     (args, pwd)
 }

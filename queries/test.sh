@@ -20,7 +20,7 @@ db_path_new="/usr/bin/sqlite3-3.39.4"
 out_old=$(docker exec -i "$container" "$db_path_old" -bail :memory: <<< $query 2>&1)
 out_new=$(docker exec -i "$container" "$db_path_new" -bail :memory: <<< $query 2>&1)
 
-output="$out_old,$out_new"
+output="$out_old&$out_new"
 
 # no oracle given => return oracle
 if [ -z "$oracle" ]; then
