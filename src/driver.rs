@@ -1,10 +1,10 @@
+use once_cell::sync::OnceCell;
 use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
-use std::str::{from_utf8};
+use std::str::from_utf8;
 use std::sync::OnceLock;
-use once_cell::sync::OnceCell;
 
 #[derive(Debug)]
 pub struct Setup {
@@ -16,30 +16,27 @@ static GLOBAL_SETUP: OnceLock<Setup> = OnceLock::new();
 
 pub fn init_for_testing() {
     let s = Setup {
-        test:   PathBuf::from("queries/test.sh"),
-        oracle: OnceCell::with_value("&Runtime error near line 1: NOT NULL constraint failed: F.p (19)".to_string()),
+        test: PathBuf::from("queries/test.sh"),
+        oracle: OnceCell::with_value(
+            "&Runtime error near line 1: NOT NULL constraint failed: F.p (19)".to_string(),
+        ),
     };
-    GLOBAL_SETUP
-        .set(s)
-        .expect("GLOBAL was already initialized");
+    GLOBAL_SETUP.set(s).expect("GLOBAL was already initialized");
 }
 
 pub fn init_test_only(test_value: &PathBuf) {
     let s = Setup {
-        test:   test_value.into(),
+        test: test_value.into(),
         oracle: OnceCell::new(),
     };
-    GLOBAL_SETUP
-        .set(s)
-        .expect("GLOBAL was already initialized");
+    GLOBAL_SETUP.set(s).expect("GLOBAL was already initialized");
 }
 
 pub fn fill_oracle(oracle_value: &str) {
     // this panics if called before init_test_only
     let cell = &GLOBAL_SETUP.get().expect("GLOBAL not init").oracle;
     // set the oracle exactly once
-    cell
-        .set(oracle_value.into())
+    cell.set(oracle_value.into())
         .expect("oracle was already set");
 }
 
@@ -64,13 +61,11 @@ pub fn init_query(query: &String) -> Result<String, Box<dyn std::error::Error>> 
 }
 
 fn get_output_from_query(query: &String) -> io::Result<Output> {
-    let setup = GLOBAL_SETUP.get().expect("There is no GLOBAL_SETUP initialized.");
+    let setup = GLOBAL_SETUP
+        .get()
+        .expect("There is no GLOBAL_SETUP initialized.");
     Command::new(&setup.test)
         .arg(query)
-        .arg(setup
-                 .oracle
-                 .get()
-                 .map(|s| s.as_str())
-                 .unwrap_or(""))
+        .arg(setup.oracle.get().map(|s| s.as_str()).unwrap_or(""))
         .output()
 }

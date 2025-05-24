@@ -1,12 +1,12 @@
-use crate::transformation;
 use crate::delta_debug::delta_debug;
 use crate::driver;
 use crate::driver::{init_for_testing, Setup};
+use crate::transformation;
 use log::info;
 use sqlparser::ast::Statement;
 use std::io::Error;
-use transformation::transformer;
 use std::string::ParseError;
+use transformation::transformer;
 
 pub fn reduce(ast: Vec<Statement>) -> Result<String, Error> {
     //info!("{:?}", ast[0].to_string());
@@ -19,8 +19,6 @@ pub fn reduce_statements(current_ast: Vec<Statement>) -> Vec<Statement> {
     let minimal_stmt = delta_debug(current_ast, 2);
 
     minimal_stmt.unwrap()
-
-
 }
 
 #[test]
