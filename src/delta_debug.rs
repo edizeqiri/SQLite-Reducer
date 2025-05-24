@@ -1,5 +1,4 @@
 use crate::driver::test_query;
-use log::debug;
 use std::error::Error;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
