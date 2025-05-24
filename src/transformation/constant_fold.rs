@@ -3,43 +3,48 @@
 use crate::transformation::transformer::Transform;
 use sqlparser::ast::Value::{Boolean, Number};
 use sqlparser::ast::{
-    BinaryOperator, Expr as SQLExpr, Expr, Expr as Value, Query, SelectItem, SetExpr, Statement,
-    UnaryOperator, ValueWithSpan,
+    BinaryOperator, Expr as SQLExpr, Query, SelectItem, SetExpr, Statement, UnaryOperator,
+    ValueWithSpan,
 };
 
-/// Our pass struct — no state needed for basic constant folding
+/// A transformer that performs constant folding on SQL expressions.
+/// Constant folding evaluates constant expressions at compile time,
+/// reducing runtime computation.
 #[derive(Debug, Default)]
 pub struct ConstantFold;
 
 impl Transform for ConstantFold {
     fn apply(&self, stmt: Statement) -> Statement {
-        fold_statement(stmt).unwrap_or_else(|| {
-            // Create a minimal query that returns no rows
-            Statement::Query(Box::new(Query {
-                body: Box::new(SetExpr::Values(sqlparser::ast::Values {
-                    explicit_row: false,
-                    rows: vec![],
-                })),
-                with: None,
-                order_by: None,
-                limit_clause: None,
-                fetch: None,
-                locks: vec![],
-                for_clause: None,
-                settings: None,
-                format_clause: None,
-            }))
-        })
+        fold_statement(stmt).unwrap_or_else(|| create_empty_query())
     }
 }
 
-/// Top-level dispatch
+/// Creates an empty query that returns no rows
+fn create_empty_query() -> Statement {
+    Statement::Query(Box::new(Query {
+        body: Box::new(SetExpr::Values(sqlparser::ast::Values {
+            explicit_row: false,
+            rows: vec![],
+        })),
+        with: None,
+        order_by: None,
+        limit_clause: None,
+        fetch: None,
+        locks: vec![],
+        for_clause: None,
+        settings: None,
+        format_clause: None,
+    }))
+}
+
+/// Folds a SQL statement, returning None if the statement evaluates to false
 fn fold_statement(stmt: Statement) -> Option<Statement> {
     match stmt {
         Statement::Query(boxed_q) => {
             let q = *boxed_q;
             let new_body = fold_setexpr(*q.body);
 
+            // If the selection is false, return None
             if let SetExpr::Select(select) = &new_body {
                 if let Some(SQLExpr::Value(ValueWithSpan {
                     value: Boolean(false),
@@ -55,46 +60,21 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                 ..q
             })))
         }
-        // pass through everything else unchanged
         other => Some(other),
     }
 }
 
+/// Folds a set expression (SELECT, VALUES, etc.)
 fn fold_setexpr(setexpr: SetExpr) -> SetExpr {
     match setexpr {
         SetExpr::Select(mut select) => {
-            select.projection = select
-                .projection
-                .into_iter()
-                .map(|item| match item {
-                    SelectItem::UnnamedExpr(expr) => SelectItem::UnnamedExpr(fold_expr(expr)),
-                    other => other,
-                })
-                .collect();
+            // Fold projection expressions
+            select.projection = fold_projection(select.projection);
 
-            select.from = select
-                .from
-                .into_iter()
-                .map(|table_with_joins| match table_with_joins.relation {
-                    sqlparser::ast::TableFactor::Derived {
-                        lateral,
-                        subquery,
-                        alias,
-                    } => sqlparser::ast::TableWithJoins {
-                        relation: sqlparser::ast::TableFactor::Derived {
-                            lateral,
-                            subquery: Box::new(Query {
-                                body: Box::new(fold_setexpr(*subquery.body)),
-                                ..*subquery
-                            }),
-                            alias,
-                        },
-                        joins: table_with_joins.joins,
-                    },
-                    _ => table_with_joins,
-                })
-                .collect();
+            // Fold FROM clause expressions
+            select.from = fold_from_clause(select.from);
 
+            // Fold WHERE clause expression
             if let Some(expr) = select.selection {
                 select.selection = Some(fold_expr(expr));
             }
@@ -116,186 +96,197 @@ fn fold_setexpr(setexpr: SetExpr) -> SetExpr {
     }
 }
 
-/// Recursively fold an expression
-fn fold_expr(expr: SQLExpr) -> SQLExpr {
-    use SQLExpr::*;
-    match expr {
-        // Handle NOT expressions first
-        UnaryOp {
-            op,
-            expr: boxed_expr,
-        } => {
-            let inner = fold_expr(*boxed_expr);
-            match op {
-                UnaryOperator::Not => match inner {
-                    Value(ValueWithSpan {
-                        value: Boolean(b), ..
-                    }) => Value(Boolean(!b).with_empty_span()),
-                    UnaryOp {
-                        op: UnaryOperator::Not,
-                        expr: inner_boxed,
-                    } => fold_expr(*inner_boxed),
-                    _ => UnaryOp {
-                        op,
-                        expr: Box::new(inner),
-                    },
+/// Folds projection expressions in a SELECT statement
+fn fold_projection(projection: Vec<SelectItem>) -> Vec<SelectItem> {
+    projection
+        .into_iter()
+        .map(|item| match item {
+            SelectItem::UnnamedExpr(expr) => SelectItem::UnnamedExpr(fold_expr(expr)),
+            other => other,
+        })
+        .collect()
+}
+
+/// Folds expressions in the FROM clause
+fn fold_from_clause(
+    from: Vec<sqlparser::ast::TableWithJoins>,
+) -> Vec<sqlparser::ast::TableWithJoins> {
+    from.into_iter()
+        .map(|table_with_joins| match table_with_joins.relation {
+            sqlparser::ast::TableFactor::Derived {
+                lateral,
+                subquery,
+                alias,
+            } => sqlparser::ast::TableWithJoins {
+                relation: sqlparser::ast::TableFactor::Derived {
+                    lateral,
+                    subquery: Box::new(Query {
+                        body: Box::new(fold_setexpr(*subquery.body)),
+                        ..*subquery
+                    }),
+                    alias,
                 },
-                UnaryOperator::Plus => inner,
-                UnaryOperator::Minus => {
-                    if let Value(ValueWithSpan {
-                        value: Number(n, _),
-                        ..
-                    }) = inner
-                    {
-                        if let Ok(num) = n.parse::<f64>() {
-                            let result = -num;
-                            if result.fract() == 0.0 {
-                                Value(
-                                    Number(format!("{}", result.trunc() as i64), false)
-                                        .with_empty_span(),
-                                )
-                            } else {
-                                Value(Number(format!("{}", result), false).with_empty_span())
-                            }
-                        } else {
-                            UnaryOp {
-                                op,
-                                expr: Box::new(Value(ValueWithSpan {
-                                    value: Number(n.clone(), false),
-                                    span: sqlparser::tokenizer::Span::empty(),
-                                })),
-                            }
-                        }
-                    } else {
-                        UnaryOp {
-                            op,
-                            expr: Box::new(inner),
-                        }
+                joins: table_with_joins.joins,
+            },
+            _ => table_with_joins,
+        })
+        .collect()
+}
+
+/// Folds a numeric value, handling integer and floating point cases
+fn fold_numeric_value(value: f64) -> SQLExpr {
+    if value.fract() == 0.0 {
+        SQLExpr::Value(ValueWithSpan {
+            value: Number(format!("{}", value.trunc() as i64), false),
+            span: sqlparser::tokenizer::Span::empty(),
+        })
+    } else {
+        SQLExpr::Value(ValueWithSpan {
+            value: Number(format!("{}", value), false),
+            span: sqlparser::tokenizer::Span::empty(),
+        })
+    }
+}
+
+/// Folds a unary operation
+fn fold_unary_op(op: UnaryOperator, expr: SQLExpr) -> SQLExpr {
+    let inner = fold_expr(expr);
+
+    match op {
+        UnaryOperator::Not => match inner {
+            SQLExpr::Value(ValueWithSpan {
+                value: Boolean(b), ..
+            }) => SQLExpr::Value(ValueWithSpan {
+                value: Boolean(!b),
+                span: sqlparser::tokenizer::Span::empty(),
+            }),
+            SQLExpr::UnaryOp {
+                op: UnaryOperator::Not,
+                expr: inner_boxed,
+            } => fold_expr(*inner_boxed),
+            _ => SQLExpr::UnaryOp {
+                op,
+                expr: Box::new(inner),
+            },
+        },
+        UnaryOperator::Plus => inner,
+        UnaryOperator::Minus => {
+            if let SQLExpr::Value(ValueWithSpan {
+                value: Number(n, _),
+                ..
+            }) = inner
+            {
+                if let Ok(num) = n.parse::<f64>() {
+                    fold_numeric_value(-num)
+                } else {
+                    SQLExpr::UnaryOp {
+                        op,
+                        expr: Box::new(SQLExpr::Value(ValueWithSpan {
+                            value: Number(n.clone(), false),
+                            span: sqlparser::tokenizer::Span::empty(),
+                        })),
                     }
                 }
-                _ => UnaryOp {
+            } else {
+                SQLExpr::UnaryOp {
                     op,
                     expr: Box::new(inner),
-                },
-            }
-        }
-        // Handle nested expressions
-        Nested(inner) => {
-            let folded = fold_expr(*inner);
-            if let Value(_) = folded {
-                folded
-            } else {
-                Nested(Box::new(folded))
-            }
-        }
-        // Handle binary operations
-        BinaryOp { left, op, right } => {
-            let l = fold_expr(*left);
-            let r = fold_expr(*right);
-
-            // Handle boolean operations
-            if let (
-                Value(ValueWithSpan {
-                    value: Boolean(lb), ..
-                }),
-                Value(ValueWithSpan {
-                    value: Boolean(rb), ..
-                }),
-            ) = (&l, &r)
-            {
-                let bool_result = match op {
-                    BinaryOperator::Eq => *lb == *rb,
-                    BinaryOperator::NotEq => *lb != *rb,
-                    BinaryOperator::And => *lb && *rb,
-                    BinaryOperator::Or => *lb || *rb,
-                    _ => {
-                        return BinaryOp {
-                            left: Box::new(l),
-                            op,
-                            right: Box::new(r),
-                        }
-                    }
-                };
-                return Value(Boolean(bool_result).with_empty_span());
-            }
-
-            // Handle numeric operations
-            if let (
-                Value(ValueWithSpan {
-                    value: Number(ls, _),
-                    ..
-                }),
-                Value(ValueWithSpan {
-                    value: Number(rs, _),
-                    ..
-                }),
-            ) = (&l, &r)
-            {
-                if let (Ok(ln), Ok(rn)) = (ls.parse::<f64>(), rs.parse::<f64>()) {
-                    match op {
-                        BinaryOperator::Plus => {
-                            let result = ln + rn;
-                            return if result.fract() == 0.0 {
-                                Value(
-                                    Number(format!("{}", result.trunc() as i64), false)
-                                        .with_empty_span(),
-                                )
-                            } else {
-                                Value(Number(format!("{}", result), false).with_empty_span())
-                            };
-                        }
-                        BinaryOperator::Minus => {
-                            let result = ln - rn;
-                            return if result.fract() == 0.0 {
-                                Value(
-                                    Number(format!("{}", result.trunc() as i64), false)
-                                        .with_empty_span(),
-                                )
-                            } else {
-                                Value(Number(format!("{}", result), false).with_empty_span())
-                            };
-                        }
-                        BinaryOperator::Multiply => {
-                            let result = ln * rn;
-                            return if result.fract() == 0.0 {
-                                Value(
-                                    Number(format!("{}", result.trunc() as i64), false)
-                                        .with_empty_span(),
-                                )
-                            } else {
-                                Value(Number(format!("{}", result), false).with_empty_span())
-                            };
-                        }
-                        BinaryOperator::Divide => {
-                            let result = ln / rn;
-                            return if result.fract() == 0.0 {
-                                Value(
-                                    Number(format!("{}", result.trunc() as i64), false)
-                                        .with_empty_span(),
-                                )
-                            } else {
-                                Value(Number(format!("{}", result), false).with_empty_span())
-                            };
-                        }
-                        BinaryOperator::Eq => return Value(Boolean(ln == rn).with_empty_span()),
-                        BinaryOperator::NotEq => return Value(Boolean(ln != rn).with_empty_span()),
-                        BinaryOperator::Gt => return Value(Boolean(ln > rn).with_empty_span()),
-                        BinaryOperator::Lt => return Value(Boolean(ln < rn).with_empty_span()),
-                        BinaryOperator::GtEq => return Value(Boolean(ln >= rn).with_empty_span()),
-                        BinaryOperator::LtEq => return Value(Boolean(ln <= rn).with_empty_span()),
-                        _ => {}
-                    }
                 }
             }
+        }
+        _ => SQLExpr::UnaryOp {
+            op,
+            expr: Box::new(inner),
+        },
+    }
+}
 
-            // Otherwise, reconstruct
-            BinaryOp {
-                left: Box::new(l),
-                op,
-                right: Box::new(r),
+/// Folds a binary operation
+fn fold_binary_op(left: SQLExpr, op: BinaryOperator, right: SQLExpr) -> SQLExpr {
+    let l = fold_expr(left);
+    let r = fold_expr(right);
+
+    // Handle boolean operations
+    if let (
+        SQLExpr::Value(ValueWithSpan {
+            value: Boolean(lb), ..
+        }),
+        SQLExpr::Value(ValueWithSpan {
+            value: Boolean(rb), ..
+        }),
+    ) = (&l, &r)
+    {
+        let bool_result = match op {
+            BinaryOperator::Eq => *lb == *rb,
+            BinaryOperator::NotEq => *lb != *rb,
+            BinaryOperator::And => *lb && *rb,
+            BinaryOperator::Or => *lb || *rb,
+            _ => {
+                return SQLExpr::BinaryOp {
+                    left: Box::new(l),
+                    op,
+                    right: Box::new(r),
+                }
+            }
+        };
+        return SQLExpr::Value(Boolean(bool_result).with_empty_span());
+    }
+
+    // Handle numeric operations
+    if let (
+        SQLExpr::Value(ValueWithSpan {
+            value: Number(ls, _),
+            ..
+        }),
+        SQLExpr::Value(ValueWithSpan {
+            value: Number(rs, _),
+            ..
+        }),
+    ) = (&l, &r)
+    {
+        if let (Ok(ln), Ok(rn)) = (ls.parse::<f64>(), rs.parse::<f64>()) {
+            match op {
+                BinaryOperator::Plus => return fold_numeric_value(ln + rn),
+                BinaryOperator::Minus => return fold_numeric_value(ln - rn),
+                BinaryOperator::Multiply => return fold_numeric_value(ln * rn),
+                BinaryOperator::Divide => return fold_numeric_value(ln / rn),
+                BinaryOperator::Eq => return SQLExpr::Value(Boolean(ln == rn).with_empty_span()),
+                BinaryOperator::NotEq => {
+                    return SQLExpr::Value(Boolean(ln != rn).with_empty_span())
+                }
+                BinaryOperator::Gt => return SQLExpr::Value(Boolean(ln > rn).with_empty_span()),
+                BinaryOperator::Lt => return SQLExpr::Value(Boolean(ln < rn).with_empty_span()),
+                BinaryOperator::GtEq => return SQLExpr::Value(Boolean(ln >= rn).with_empty_span()),
+                BinaryOperator::LtEq => return SQLExpr::Value(Boolean(ln <= rn).with_empty_span()),
+                _ => {}
             }
         }
-        // Pass through other expressions unchanged
+    }
+
+    // Otherwise, reconstruct
+    SQLExpr::BinaryOp {
+        left: Box::new(l),
+        op,
+        right: Box::new(r),
+    }
+}
+
+/// Recursively folds an expression
+fn fold_expr(expr: SQLExpr) -> SQLExpr {
+    match expr {
+        SQLExpr::UnaryOp {
+            op,
+            expr: boxed_expr,
+        } => fold_unary_op(op, *boxed_expr),
+        SQLExpr::Nested(inner) => {
+            let folded = fold_expr(*inner);
+            if let SQLExpr::Value(_) = folded {
+                folded
+            } else {
+                SQLExpr::Nested(Box::new(folded))
+            }
+        }
+        SQLExpr::BinaryOp { left, op, right } => fold_binary_op(*left, op, *right),
         other => other,
     }
 }
@@ -317,5 +308,12 @@ mod test {
         let query = "SELECT 2 + 3 * (4 - 1)";
         let ast = parser::generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
         assert_eq!(ast.unwrap().unwrap().to_string(), "SELECT 11")
+    }
+
+    #[test]
+    fn test_fold_query_with_insert() {
+        let query = "INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
+        let ast = parser::generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
+        assert_eq!(ast.unwrap().unwrap().to_string(), "INSERT INTO F NONE")
     }
 }

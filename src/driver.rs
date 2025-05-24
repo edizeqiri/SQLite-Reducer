@@ -1,11 +1,8 @@
-use log::info;
-use sqlparser::ast::helpers::stmt_data_loading::StageLoadSelectItem;
-use sqlparser::ast::Query;
 use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
-use std::str::{from_utf8, Utf8Error};
+use std::str::from_utf8;
 
 #[derive(Clone)]
 pub struct Setup {
