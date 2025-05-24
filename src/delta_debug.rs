@@ -1,7 +1,6 @@
 use crate::driver::test_query;
 use std::error::Error;
 
-
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>
 where
@@ -18,12 +17,14 @@ where
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
-                .join(";") + ";";
+                .join(";")
+                + ";";
             let input_nabla = nabla
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
-                .join(";") + ";";
+                .join(";")
+                + ";";
 
             // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {
@@ -60,7 +61,8 @@ where
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
-            .join(";") + ";";
+            .join(";")
+            + ";";
         if test_query(&input)? {
             return find_one_minimal(&truncated);
         }
@@ -107,4 +109,3 @@ fn test_get_nabla() {
     let nabla = get_nabla(&data, &delta);
     assert_eq!(nabla, vec![10]);
 }
-
