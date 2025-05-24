@@ -1,4 +1,5 @@
 use crate::driver::test_query;
+use log::debug;
 use std::error::Error;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
@@ -13,18 +14,8 @@ where
         for delta in &tests {
             let nabla = get_nabla(&data, delta);
 
-            let input_delta = delta
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(";")
-                + ";";
-            let input_nabla = nabla
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(";")
-                + ";";
+            let input_delta = vec_statement_to_string(&delta);
+            let input_nabla = vec_statement_to_string(&nabla);
 
             // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {
@@ -47,22 +38,29 @@ where
     find_one_minimal(&data)
 }
 
+pub fn vec_statement_to_string<T>(vector: &Vec<T>) -> String
+where
+    T: Clone + ToString + std::cmp::PartialEq,
+{
+    vector
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(";")
+        + ";"
+}
+
 /// Recursively remove one element at a time.
 fn find_one_minimal<T>(test: &[T]) -> Result<Vec<T>, Box<dyn Error>>
 where
-    T: Clone + ToString,
+    T: Clone + ToString + std::cmp::PartialEq,
 {
     let mut current = test.to_vec();
     for i in 0..current.len() {
         let mut truncated = current.clone();
         truncated.remove(i);
 
-        let input = truncated
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(";")
-            + ";";
+        let input = vec_statement_to_string(&truncated);
         if test_query(&input)? {
             return find_one_minimal(&truncated);
         }
