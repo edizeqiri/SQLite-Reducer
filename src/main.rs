@@ -34,8 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Test output: {:?}", test_reduce);
 
     let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
-    
-    write_output_to_file(vec_statement_to_string(&reduced_statements?), "src/output/reduced_statements.txt".parse().unwrap());
+
+    write_output_to_file(
+        vec_statement_to_string(&reduced_statements?),
+        "src/output/reduced_statements.txt".parse().unwrap(),
+    );
     Ok(())
 }
 
