@@ -1,5 +1,6 @@
 use crate::driver::test_query;
 use std::error::Error;
+use crate::vec_statement_to_string;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>
@@ -35,18 +36,6 @@ where
     }
 
     find_one_minimal(&data)
-}
-
-pub fn vec_statement_to_string<T>(vector: &Vec<T>) -> String
-where
-    T: Clone + ToString + std::cmp::PartialEq,
-{
-    vector
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(";")
-        + ";"
 }
 
 /// Recursively remove one element at a time.

@@ -1,5 +1,5 @@
-use crate::delta_debug::{delta_debug, vec_statement_to_string};
-use crate::driver;
+use crate::delta_debug::delta_debug;
+use crate::{driver, vec_statement_to_string};
 use crate::driver::{init_for_testing, Setup};
 use crate::transformation;
 use log::info;

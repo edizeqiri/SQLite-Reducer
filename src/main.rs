@@ -33,8 +33,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_reduce = driver::test_query(&query);
     info!("Test output: {:?}", test_reduce);
 
-    //reduce_statements(parser::generate_ast(&query)?, setup);
-
+    let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
+    
+    write_output_to_file(vec_statement_to_string(&reduced_statements?), "src/output/reduced_statements.txt".parse().unwrap());
     Ok(())
 }
 
@@ -46,6 +47,10 @@ fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
     (query, pwd.join(args.test))
 }
 
+fn write_output_to_file(content: String, path: PathBuf) {
+    fs::write(path, content).unwrap();
+}
+
 fn init() -> (Cli, PathBuf) {
     env_logger::init();
     let args = Cli::parse();
@@ -55,6 +60,18 @@ fn init() -> (Cli, PathBuf) {
     println!("Current directory: {}", pwd.display());
 
     (args, pwd)
+}
+
+pub fn vec_statement_to_string<T>(vector: &Vec<T>) -> String
+where
+    T: Clone + ToString + std::cmp::PartialEq,
+{
+    vector
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(";")
+        + ";"
 }
 
 #[derive(Parser)]
