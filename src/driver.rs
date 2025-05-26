@@ -16,7 +16,7 @@ static GLOBAL_SETUP: OnceLock<Setup> = OnceLock::new();
 
 pub fn init_for_testing() {
     let s = Setup {
-        test: PathBuf::from("queries/test.sh"),
+        test: PathBuf::from("queries/docker_test.sh"),
         oracle: OnceCell::with_value(
             "&Runtime error near line 1: NOT NULL constraint failed: F.p (19)".to_string(),
         ),
