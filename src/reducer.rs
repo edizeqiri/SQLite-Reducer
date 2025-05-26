@@ -1,12 +1,13 @@
 use crate::delta_debug::delta_debug;
 use crate::driver::{init_for_testing, Setup};
 use crate::transformation;
-use crate::{driver, vec_statement_to_string};
+use crate::driver;
 use log::info;
 use sqlparser::ast::Statement;
 use std::io::{Error, Read};
 use std::string::ParseError;
 use transformation::transformer;
+use crate::utils::vec_statement_to_string;
 
 pub fn reduce(ast: Vec<Statement>) -> Result<String, Error> {
     //info!("{:?}", ast[0].to_string());
@@ -21,7 +22,7 @@ pub fn reduce_statements(
     let current_ast_length = current_ast.len(); // get length before passing ownership
     let minimal_stmt = delta_debug(current_ast, 2);
     if let Ok(statements) = &minimal_stmt {
-        info!("{}", vec_statement_to_string(statements))
+        info!("{}", vec_statement_to_string(statements, ";"))
     } else {
         info!("Failed to get statements");
     }

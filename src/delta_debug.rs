@@ -1,6 +1,6 @@
 use crate::driver::test_query;
-use crate::vec_statement_to_string;
 use std::error::Error;
+use crate::utils::vec_statement_to_string;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>
@@ -14,8 +14,8 @@ where
         for delta in &tests {
             let nabla = get_nabla(&data, delta);
 
-            let input_delta = vec_statement_to_string(&delta);
-            let input_nabla = vec_statement_to_string(&nabla);
+            let input_delta = vec_statement_to_string(&delta, ";");
+            let input_nabla = vec_statement_to_string(&nabla, ";");
 
             // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {
@@ -48,7 +48,7 @@ where
         let mut truncated = current.clone();
         truncated.remove(i);
 
-        let input = vec_statement_to_string(&truncated);
+        let input = vec_statement_to_string(&truncated, ";");
         if test_query(&input)? {
             return find_one_minimal(&truncated);
         }

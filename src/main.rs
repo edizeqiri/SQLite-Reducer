@@ -3,6 +3,7 @@ mod driver;
 mod parser;
 mod reducer;
 mod transformation;
+mod utils;
 
 use crate::driver::{fill_oracle, init_test_only, Setup};
 use crate::reducer::reduce_statements;
@@ -35,10 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
 
-    write_output_to_file(
-        vec_statement_to_string(&reduced_statements?),
-        "src/output/reduced_statements.txt".parse().unwrap(),
-    );
+
     Ok(())
 }
 
@@ -65,17 +63,6 @@ fn init() -> (Cli, PathBuf) {
     (args, pwd)
 }
 
-pub fn vec_statement_to_string<T>(vector: &Vec<T>) -> String
-where
-    T: Clone + ToString + std::cmp::PartialEq,
-{
-    vector
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(";")
-        + ";"
-}
 
 #[derive(Parser)]
 struct Cli {
