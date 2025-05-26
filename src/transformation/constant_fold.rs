@@ -359,6 +359,9 @@ mod test {
     fn test_fold_query_with_insert() {
         let query = "INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
         let ast = parser::generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
-        assert_eq!(ast.unwrap().unwrap().to_string(), "INSERT INTO F SELECT * FROM (VALUES (true, false), (NULL, true)) AS L WHERE false")
+        assert_eq!(
+            ast.unwrap().unwrap().to_string(),
+            "INSERT INTO F SELECT * FROM (VALUES (true, false), (NULL, true)) AS L WHERE false"
+        )
     }
 }
