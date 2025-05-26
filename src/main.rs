@@ -5,7 +5,6 @@ mod reducer;
 mod transformation;
 mod utils;
 
-use crate::driver::{fill_oracle, init_test_only, Setup};
 use crate::reducer::reduce_statements;
 use clap::ArgAction::Set;
 use clap::Parser;
@@ -24,12 +23,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     //let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
 
-    init_test_only(&test_path);
-
-    let oracle = driver::init_query(&query);
-    info!("Init output: {:?}", oracle);
-
-    fill_oracle(&oracle?);
+    driver::init_query(&query, test_path);
+    
 
     let test_reduce = driver::test_query(&query);
     info!("Test output: {:?}", test_reduce);

@@ -1,5 +1,4 @@
 use crate::delta_debug::delta_debug;
-use crate::driver::{init_for_testing, Setup};
 use crate::transformation;
 use crate::driver;
 use log::info;
