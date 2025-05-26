@@ -1,0 +1,13 @@
+{
+  "name": "Rust DevContainer",
+  "build": {
+    // relative to the .devcontainer folder
+    "dockerfile": "Dockerfile",
+    // so your Docker build context is the project root
+    "context": ".."
+  },
+  // where to mount your code *inside* the container
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev"
+
+}

@@ -1,9 +1,10 @@
 // src/transform/constant_fold.rs
 
 use crate::transformation::transformer::Transform;
-use sqlparser::ast::Value::{Boolean, Number};
+use sqlparser::ast;
+use sqlparser::ast::Value::{Boolean, Null, Number};
 use sqlparser::ast::{
-    BinaryOperator, Expr as SQLExpr, Query, SelectItem, SetExpr, Statement, UnaryOperator,
+    BinaryOperator, Expr as SQLExpr, Insert, Query, SelectItem, SetExpr, Statement, UnaryOperator,
     ValueWithSpan,
 };
 
@@ -60,6 +61,50 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                 ..q
             })))
         }
+        Statement::Insert(mut boxed_i) => {
+            // Extract and fold the source query if it exists
+            if let Some(source) = boxed_i.source.take() {
+                let folded_body = fold_setexpr(*source.body);
+                /*
+                // Check if the WHERE clause evaluates to false
+                if let SetExpr::Select(select) = &folded_body {
+                    if let Some(SQLExpr::Value(ValueWithSpan {
+                        value: Boolean(false),
+                        ..
+                    })) = select.selection
+                    {
+                        // Create INSERT with empty VALUES instead of returning None
+                        boxed_i.source = Some(Box::new(Query {
+                            body: Box::new(SetExpr::Values(sqlparser::ast::Values {
+                                explicit_row: false,
+                                rows: vec![],
+                            })),
+                            with: None,
+                            order_by: None,
+                            limit_clause: None,
+                            fetch: None,
+                            locks: vec![],
+                            for_clause: None,
+                            settings: None,
+                            format_clause: None,
+                        }));
+                        return Some(Statement::Insert(boxed_i));
+                    }
+                }*/
+
+                // Reconstruct the query with folded body
+                let new_source = Query {
+                    body: Box::new(folded_body),
+                    ..*source
+                };
+
+                // Update the INSERT with the folded source
+                boxed_i.source = Some(Box::new(new_source));
+            }
+
+            Some(Statement::Insert(boxed_i))
+        }
+
         other => Some(other),
     }
 }
@@ -314,6 +359,6 @@ mod test {
     fn test_fold_query_with_insert() {
         let query = "INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
         let ast = parser::generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
-        assert_eq!(ast.unwrap().unwrap().to_string(), "INSERT INTO F NONE")
+        assert_eq!(ast.unwrap().unwrap().to_string(), "INSERT INTO F SELECT * FROM (VALUES (true, false), (NULL, true)) AS L WHERE false")
     }
 }
