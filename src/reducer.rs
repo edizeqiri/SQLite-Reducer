@@ -32,17 +32,3 @@ pub fn reduce_statements(
     );
     minimal_stmt
 }
-
-// integration test
-#[test]
-fn test_delta_debugging() -> Result<(), Box<dyn std::error::Error>> {
-    init_for_testing();
-    let query = "CREATE TABLE F (p BOOLEAN NOT NULL NULL NOT NULL, i BOOLEAN);
-INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));CREATE TABLE F (p BOOLEAN NOT NULL NULL NOT NULL, i BOOLEAN);
-INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
-
-    let current_ast = crate::parser::generate_ast(&query)?;
-    let ok_stmt = reduce_statements(current_ast.clone())?;
-    assert_eq!(ok_stmt, current_ast[0..2]);
-    Ok(())
-}

@@ -60,6 +60,7 @@ pub fn init_query(query: &String) -> Result<String, Box<dyn std::error::Error>> 
     )
 }
 
+
 fn get_output_from_query(query: &String) -> io::Result<Output> {
     let setup = GLOBAL_SETUP
         .get()
