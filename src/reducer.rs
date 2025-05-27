@@ -21,9 +21,12 @@ pub fn reduce_statements(
     let current_ast_length = current_ast.len(); // get length before passing ownership
     let minimal_stmt = delta_debug(current_ast, 2);
     if let Ok(statements) = &minimal_stmt {
-        info!("{}", vec_statement_to_string(statements, ";"))
+        println!(
+            "REDUCED STATEMENT: {}",
+            vec_statement_to_string(statements, ";")
+        )
     } else {
-        info!("Failed to get statements");
+        println!("REDUCED STATEMENT: Failed to get statements");
     }
     info!(
         "original query length: {:?}, reduced query length: {:?}",
