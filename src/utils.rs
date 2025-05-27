@@ -1,5 +1,5 @@
 use clap::Parser;
-use log::info;
+use log::*;
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -18,11 +18,13 @@ where
         + separator)
 }
 
-pub fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
+pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
     let query_path = pwd.join(args.query);
-
-    let query = fs::read_to_string(query_path).unwrap().replace('\n', "");
-
+    let query = fs::read_to_string(&query_path)
+        .expect(&format!("Failed to read query path: {:?}", query_path));
+        
+    warn!("[ANALYSIS] QUERY PATH: {:?}[END ANALYSIS]", query_path);
+    warn!("[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]", query);
     (query, pwd.join(args.test))
 }
 

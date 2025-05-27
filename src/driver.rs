@@ -36,7 +36,7 @@ pub fn init_query(
 
     info!("Expected result is: {:?}", expected_result);
 
-    &GLOBAL_EXPECTED_RESULT
+    let _ = &GLOBAL_EXPECTED_RESULT
         .set(expected_result)
         .expect("test script path already initialized");
 

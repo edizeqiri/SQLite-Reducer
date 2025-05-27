@@ -19,6 +19,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and_then(reducer::reduce)
         .and_then(|ast| vec_statement_to_string(&ast, "\n"));
 
-    info!("ast: {:?}", ast);
+    info!("[ANALYSIS] ast: {:?}", ast);
     Ok(())
 }
