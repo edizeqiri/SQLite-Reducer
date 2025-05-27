@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     driver::init_query(&query, test_path)?;
 
     let ast = parser::generate_ast(&query)
-        .and_then(|ast| Ok(reducer::reduce(ast)))
+        .map(reducer::reduce)
         .and_then(|ast| Ok(vec_statement_to_string(&ast.unwrap(), "\n")));
     info!("ast: {:?}", ast.unwrap());
     Ok(())
