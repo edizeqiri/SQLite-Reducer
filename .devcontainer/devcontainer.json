@@ -3,7 +3,19 @@
 {
 	"name": "Rust",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"dockerFile": "Dockerfile"
+	"dockerFile": "Dockerfile",
+	"forwardPorts": [8888],
+    "postCreateCommand": "jupyter notebook --ip=0.0.0.0 --port=8888 --NotebookApp.token='' --NotebookApp.password='' --no-browser --allow-root",
+    "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-vscode-remote.remote-containers",
+        "tomoki1207.pdf",
+        "george-alisson.html-preview-vscode"
+
+    ]
+
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
