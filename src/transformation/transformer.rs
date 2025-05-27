@@ -28,7 +28,7 @@ impl Transform for TransformPass {
     }
 }
 
-pub fn transform(mut stmts: Vec<Statement>) {
+pub fn transform(mut stmts: Vec<Statement>) -> Vec<Statement> {
     let transforms: Vec<TransformPass> = vec![
         TransformPass::ConstantFold(ConstantFold {}),
         /*TransformPass::PredicatePushdown(PredicatePushdown{}),
@@ -45,4 +45,5 @@ pub fn transform(mut stmts: Vec<Statement>) {
             .map(|stmt| pass.apply(stmt))
             .collect();
     }
+    stmts
 }

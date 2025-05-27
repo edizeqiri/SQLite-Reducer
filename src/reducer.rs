@@ -1,30 +1,17 @@
 use crate::delta_debug::delta_debug;
 use crate::driver;
 use crate::transformation;
+use crate::transformation::transformer::transform;
 use crate::utils::vec_statement_to_string;
 use log::info;
 use sqlparser::ast::Statement;
 use std::io::{Error, Read};
-use std::string::ParseError;
-use transformation::transformer;
 
-pub fn reduce(ast: Vec<Statement>) -> Result<String, Error> {
-    //info!("{:?}", ast[0].to_string());
-    let trans = transformer::transform(ast.clone());
-    info!("Transformation is : {:?}", trans);
-    Ok("Print".to_string())
-}
+pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
+    let current_ast_length = current_ast.len();
 
-pub fn reduce_statements(
-    current_ast: Vec<Statement>,
-) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
-    let current_ast_length = current_ast.len(); // get length before passing ownership
-    let minimal_stmt = delta_debug(current_ast, 2);
-    if let Ok(statements) = &minimal_stmt {
-        info!("{}", vec_statement_to_string(statements, ";"))
-    } else {
-        info!("Failed to get statements");
-    }
+    let minimal_stmt = delta_debug(current_ast, 2).and_then(|ast| Ok(transform(ast)));
+
     info!(
         "original query length: {:?}, reduced query length: {:?}",
         current_ast_length,

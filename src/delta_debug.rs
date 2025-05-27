@@ -1,5 +1,6 @@
 use crate::driver::test_query;
 use crate::utils::vec_statement_to_string;
+use log::info;
 use std::error::Error;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
@@ -41,7 +42,7 @@ where
 /// Recursively remove one element at a time.
 fn find_one_minimal<T>(test: &[T]) -> Result<Vec<T>, Box<dyn Error>>
 where
-    T: Clone + ToString + std::cmp::PartialEq,
+    T: Clone + ToString + PartialEq,
 {
     let mut current = test.to_vec();
     for i in 0..current.len() {
@@ -53,6 +54,8 @@ where
             return find_one_minimal(&truncated);
         }
     }
+
+    info!("{}", vec_statement_to_string(&current, ";"));
     Ok(current)
 }
 

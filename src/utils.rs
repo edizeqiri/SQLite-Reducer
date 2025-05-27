@@ -1,6 +1,6 @@
 pub fn vec_statement_to_string<T>(vector: &Vec<T>, separator: &str) -> String
 where
-    T: Clone + ToString + std::cmp::PartialEq,
+    T: ToString + PartialEq,
 {
     vector
         .iter()

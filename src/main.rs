@@ -5,7 +5,7 @@ mod reducer;
 mod transformation;
 mod utils;
 
-use crate::reducer::reduce_statements;
+use crate::utils::vec_statement_to_string;
 use clap::ArgAction::Set;
 use clap::Parser;
 use log::*;
@@ -20,16 +20,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (args, pwd) = init();
 
     let (query, test_path) = read_and_parse_args(args, pwd);
+    driver::init_query(&query, test_path)?;
 
-    //let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
-
-    driver::init_query(&query, test_path);
-
-    let test_reduce = driver::test_query(&query);
-    info!("Test output: {:?}", test_reduce);
-
-    let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
-
+    let ast = parser::generate_ast(&query)
+        .and_then(|ast| Ok(reducer::reduce(ast)))
+        .and_then(|ast| Ok(vec_statement_to_string(&ast.unwrap(), "\n")));
+    info!("ast: {:?}", ast.unwrap());
     Ok(())
 }
 
