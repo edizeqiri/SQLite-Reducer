@@ -16,9 +16,27 @@ RUN apt-get update \
       openssh-server \
  && rm -rf /var/lib/apt/lists/*
 
+ # Install Python dependencies
+ # Install Python and pip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip
+
+# Install Jupyter and ipykernel (for the Jupyter kernel)
+RUN pip install --upgrade --quiet jupyter ipykernel
+
+# Register the current Python environment as a Jupyter kernel
+RUN python3 -m ipykernel install --user --name=mykernel --display-name "Python 3 (mycontainer)"
+
 # ---------- Install Rust toolchain ----------
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --default-toolchain stable
+    | sh -s -- -y --default-toolchain stable && \
+    . "$HOME/.cargo/env" && \
+    rustup default stable
 
 # ---------- Configure SSH for root login ----------
 # Create SSH run directory, set root password, permit root login
@@ -39,4 +57,12 @@ WORKDIR /workspace
 
 # ---------- Expose SSH port and start SSHD by default ----------
 EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
+#RUN "/usr/sbin/sshd -D"
+
+# Expose the port Jupyter will run on
+EXPOSE 8888
+
+# Set the default command to run the start-up script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+CMD ["/start.sh"]
