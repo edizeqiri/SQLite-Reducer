@@ -24,13 +24,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //let ast = parser::generate_ast(&query).and_then(|ast| Ok(reducer::reduce(ast)));
 
     driver::init_query(&query, test_path);
-    
 
     let test_reduce = driver::test_query(&query);
     info!("Test output: {:?}", test_reduce);
 
-    let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
-
+    //let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
 
     Ok(())
 }
@@ -57,7 +55,6 @@ fn init() -> (Cli, PathBuf) {
 
     (args, pwd)
 }
-
 
 #[derive(Parser)]
 struct Cli {

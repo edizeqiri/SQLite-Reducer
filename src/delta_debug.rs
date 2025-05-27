@@ -1,6 +1,6 @@
 use crate::driver::test_query;
-use std::error::Error;
 use crate::utils::vec_statement_to_string;
+use std::error::Error;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>

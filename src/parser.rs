@@ -9,5 +9,3 @@ pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, ParserError> {
     //info!("AST: {:#?}", stmts);
     Ok(stmts)
 }
-
-

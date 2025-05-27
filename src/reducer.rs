@@ -1,12 +1,12 @@
 use crate::delta_debug::delta_debug;
-use crate::transformation;
 use crate::driver;
+use crate::transformation;
+use crate::utils::vec_statement_to_string;
 use log::info;
 use sqlparser::ast::Statement;
 use std::io::{Error, Read};
 use std::string::ParseError;
 use transformation::transformer;
-use crate::utils::vec_statement_to_string;
 
 pub fn reduce(ast: Vec<Statement>) -> Result<String, Error> {
     //info!("{:?}", ast[0].to_string());
