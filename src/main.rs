@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let test_reduce = driver::test_query(&query);
     info!("Test output: {:?}", test_reduce);
 
-    //let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
+    let reduced_statements = reduce_statements(parser::generate_ast(&query)?);
 
     Ok(())
 }
