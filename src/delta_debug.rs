@@ -38,7 +38,7 @@ where
 
     let minimal_statement = find_one_minimal(&data);
     if let Ok(vec) = &minimal_statement {
-        warn!("[ANALYSIS] AFTER DELTA DEBUGGING: {}[END ANALYSIS]", vec_statement_to_string(vec, "; "));
+        warn!("[ANALYSIS] AFTER DELTA DEBUGGING: {:?}[END ANALYSIS]", vec_statement_to_string(vec, "; "));
     }
     minimal_statement
 }
