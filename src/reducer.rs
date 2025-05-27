@@ -10,7 +10,7 @@ use std::io::{Error, Read};
 pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let current_ast_length = current_ast.len();
 
-    let minimal_stmt = delta_debug(current_ast, 2).and_then(|ast| Ok(transform(ast)));
+    let minimal_stmt = delta_debug(current_ast, 2).map(transform);
 
     info!(
         "original query length: {:?}, reduced query length: {:?}",

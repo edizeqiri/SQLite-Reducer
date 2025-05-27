@@ -19,11 +19,11 @@ where
             let input_nabla = vec_statement_to_string(&nabla, ";");
 
             // use `?` to propagate any I/O/test errors
-            if test_query(&input_delta)? {
+            if test_query(&input_delta?)? {
                 data = delta.clone();
                 reduced = true;
                 break;
-            } else if test_query(&input_nabla)? {
+            } else if test_query(&input_nabla?)? {
                 data = nabla;
                 granularity = granularity.saturating_sub(1);
                 reduced = true;
@@ -50,12 +50,12 @@ where
         truncated.remove(i);
 
         let input = vec_statement_to_string(&truncated, ";");
-        if test_query(&input)? {
+        if test_query(&input?)? {
             return find_one_minimal(&truncated);
         }
     }
 
-    info!("{}", vec_statement_to_string(&current, ";"));
+    info!("{:?}", vec_statement_to_string(&current, ";"));
     Ok(current)
 }
 
