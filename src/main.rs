@@ -31,11 +31,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
     let query_path = pwd.join(args.query);
-    info!("query path: {:?}", query_path);
     let query = fs::read_to_string(&query_path)
         .expect(&format!("Failed to read query path: {:?}", query_path))
-        .replace('\n', "");
-    
+        .replace('\n', "")
+        .replace("\r", "");
+    warn!("[ANALYSIS] QUERY PATH: {:?}[END ANALYSIS]", query_path);
+    warn!("[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]", query);
     (query, pwd.join(args.test))
 }
 

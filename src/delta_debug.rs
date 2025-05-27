@@ -1,12 +1,12 @@
 use crate::driver::test_query;
 use crate::utils::vec_statement_to_string;
-use log::info;
+use log::*;
 use std::error::Error;
 
 /// Perform delta debugging on a vector of items of arbitrary type T.
 pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>, Box<dyn Error>>
 where
-    T: Clone + ToString + std::cmp::PartialEq,
+    T: Clone + ToString + std::cmp::PartialEq + std::fmt::Debug,
 {
     while granularity <= data.len() {
         let tests = split_tests(&data, granularity);
@@ -36,7 +36,11 @@ where
         }
     }
 
-    find_one_minimal(&data)
+    let minimal_statement = find_one_minimal(&data);
+    if let Ok(vec) = &minimal_statement {
+        warn!("[ANALYSIS] AFTER DELTA DEBUGGING: {}[END ANALYSIS]", vec_statement_to_string(vec, "; "));
+    }
+    minimal_statement
 }
 
 /// Recursively remove one element at a time.
