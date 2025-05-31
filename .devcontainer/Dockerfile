@@ -35,8 +35,7 @@ RUN python3 -m ipykernel install --user --name=mykernel --display-name "Python 3
 # ---------- Install Rust toolchain ----------
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --default-toolchain stable && \
-    . "$HOME/.cargo/env" && \
-    rustup default stable
+    . "$HOME/.cargo/env"
 
 # ---------- Configure SSH for root login ----------
 # Create SSH run directory, set root password, permit root login
@@ -48,10 +47,14 @@ RUN mkdir -p /var/run/sshd \
 # ---------- Create a workspace directory ----------
 RUN mkdir /workspace
 
+RUN sudo apt update
+RUN sudo apt install dos2unix
+
 # ---------- Environment and working dir ----------
 ENV CARGO_HOME=/home/root/.cargo
 ENV RUSTUP_HOME=/home/root/.rustup
 ENV PATH="$CARGO_HOME/bin:${PATH}"
+RUN rustup default stable
 
 WORKDIR /workspace
 
