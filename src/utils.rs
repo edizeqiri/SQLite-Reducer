@@ -22,9 +22,12 @@ pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) 
     let query_path = pwd.join(args.query);
     let query = fs::read_to_string(&query_path)
         .expect(&format!("Failed to read query path: {:?}", query_path));
-        
+
     warn!("[ANALYSIS] QUERY PATH: {:?}[END ANALYSIS]", query_path);
-    warn!("[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]", query.replace(";;",";").replace("\n"," "));
+    warn!(
+        "[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]",
+        query.replace(";;", ";").replace("\n", " ")
+    );
     (query, pwd.join(args.test))
 }
 

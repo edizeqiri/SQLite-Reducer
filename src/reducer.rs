@@ -12,6 +12,5 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std
 
     let minimal_stmt = delta_debug(current_ast, 2).map(transform);
 
-
     minimal_stmt
 }
