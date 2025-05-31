@@ -17,29 +17,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let (args, pwd) = utils::init();
 
-    let (query, test_path) = utils::read_and_parse_args(args, pwd);
+    let (query, test_path, query_path) = utils::read_and_parse_args(args, pwd);
     driver::init_query(&query, test_path)?;
     info!("Starting the parser");
-    
-    let parsini = &query
+
+    let parsini: Vec<String> = query
         .replace(";;", ";")
-        .replace("\n", " ")
-        .replace("\r", "")
-        .split(";")
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>();
+        .replace('\n', " ")
+        .replace('\r', "")
+        .trim()
+        .split(';')
+        .filter(|part| !part.to_string().is_empty())
+        .map(|part| part.to_string())
+        .collect();
+
     info!("parsed query with params: {:?}", parsini.len());  
     info!("starting reduction");  
     let reduced = delta_debug(parsini.clone(), 2)?;
-    info!("query reduced with params {:?}", reduced.len());  
-    let reduced_query = reduced.join(";") + ";";
+    info!("query reduced with params {:?}", reduced.len());
 
     /*&let ast = parser::generate_ast(&query)
             .and_then(reducer::reduce)
             .and_then(|ast| vec_statement_to_string(&ast, "\n"));
     */
     info!("writing results to file");
-    utils::print_result(&query, &reduced_query, start.elapsed()).expect("TODO: panic message");
+    utils::print_result(&query_path, &query, &reduced, start.elapsed()).expect("TODO: panic message");
     info!("finished writing results to file");
     Ok(())
 }

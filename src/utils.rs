@@ -3,6 +3,7 @@ use log::*;
 use std::path::PathBuf;
 use std::{env, fs};
 use std::time::Duration;
+use regex::Regex;
 
 pub fn vec_statement_to_string<T>(
     vector: &Vec<T>,
@@ -19,8 +20,10 @@ where
         + separator)
 }
 
-pub fn print_result(orig_query: &String, reduced_query: &String, elapsed_time: Duration) -> Result<(), Box<dyn std::error::Error>> {
-    // orig-query&reduced-query&orig-num-stmt&reduced-num-stmt&orig-token&reduced-token&time-taken
+pub fn print_result(query_path: &String, orig_query: &String, reduced: &Vec<String>, elapsed_time: Duration) -> Result<(), Box<dyn std::error::Error>> {
+    // orig-num-stmt&reduced-num-stmt&orig-token&reduced-token&time-taken
+
+    let reduced_query = reduced.join(";") + ";";
 
     let orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
     let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
@@ -30,10 +33,13 @@ pub fn print_result(orig_query: &String, reduced_query: &String, elapsed_time: D
 
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
 
+    let (_, query_number) = query_path
+        .rsplit('/')
+        .nth(1).unwrap()
+        .split_at(5);
+
     let output = format!(
-        "{}&{}&{}&{}&{}&{}&{}",
-        orig_query,
-        reduced_query,
+        "{},{},{},{},{}",
         orig_num_stmt,
         reduced_num_stmt,
         orig_num_token,
@@ -42,17 +48,19 @@ pub fn print_result(orig_query: &String, reduced_query: &String, elapsed_time: D
     );
 
     warn!("[ANALYSIS] {:?}", &output);
-    write_output_to_file(output, "src/resources/result.csv".into());
+    write_output_to_file(output, format!("src/output/result{}.csv", query_number).into());
 
     Ok(())
 }
 
-pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) {
+pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf, String) {
     let query_path = pwd.join(args.query);
+
+
     let query = fs::read_to_string(&query_path)
         .expect(&format!("Failed to read query path: {:?}", query_path));
     
-    (query, pwd.join(args.test))
+    (query, pwd.join(args.test), query_path.to_string_lossy().to_string())
 }
 
 fn write_output_to_file(content: String, path: PathBuf) {
