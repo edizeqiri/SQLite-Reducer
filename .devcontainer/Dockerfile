@@ -28,7 +28,6 @@ RUN pip install --upgrade pip
 
 # Install Jupyter and ipykernel (for the Jupyter kernel)
 RUN pip install --upgrade --quiet jupyter ipykernel
-RUN pip install pandas
 
 # Register the current Python environment as a Jupyter kernel
 RUN python3 -m ipykernel install --user --name=mykernel --display-name "Python 3 (mycontainer)"
@@ -36,7 +35,7 @@ RUN python3 -m ipykernel install --user --name=mykernel --display-name "Python 3
 # ---------- Install Rust toolchain ----------
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --default-toolchain stable && \
-    . "$HOME/.cargo/env" && \
+    . "$HOME/.cargo/env"
 
 # ---------- Configure SSH for root login ----------
 # Create SSH run directory, set root password, permit root login
@@ -47,6 +46,9 @@ RUN mkdir -p /var/run/sshd \
 
 # ---------- Create a workspace directory ----------
 RUN mkdir /workspace
+
+RUN sudo apt update
+RUN sudo apt install dos2unix
 
 # ---------- Environment and working dir ----------
 ENV CARGO_HOME=/home/root/.cargo

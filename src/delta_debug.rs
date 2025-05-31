@@ -37,13 +37,7 @@ where
     }
 
     let minimal_statement = find_one_minimal(&data);
-    warn!(
-        "[ANALYSIS] AFTER DELTA DEBUGGING: {}[END ANALYSIS]",
-        match &minimal_statement {
-            Ok(vec) => vec_statement_to_string(vec, "; ")?,
-            Err(e) => format!("Error during delta debugging: {:?}", e).to_string(),
-        }
-    );
+
     minimal_statement
 }
 /// Recursively remove one element at a time.
