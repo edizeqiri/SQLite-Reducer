@@ -50,11 +50,12 @@ RUN mkdir /workspace
 RUN sudo apt update
 RUN sudo apt install dos2unix
 
+RUN pip install -r ../requirements.txt
+
 # ---------- Environment and working dir ----------
 ENV CARGO_HOME=/home/root/.cargo
 ENV RUSTUP_HOME=/home/root/.rustup
 ENV PATH="$CARGO_HOME/bin:${PATH}"
-RUN rustup default stable
 
 WORKDIR /workspace
 

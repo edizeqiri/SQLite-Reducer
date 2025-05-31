@@ -1,9 +1,11 @@
 use clap::Parser;
 use log::*;
 use std::path::PathBuf;
-use std::{env, fs};
+use std::{env, fs, process};
 use std::time::Duration;
 use regex::Regex;
+
+use crate::parser::generate_ast;
 
 pub fn vec_statement_to_string<T>(
     vector: &Vec<T>,
@@ -47,7 +49,7 @@ pub fn print_result(query_path: &String, orig_query: &String, reduced: &Vec<Stri
         time_taken
     );
 
-    warn!("[ANALYSIS] {:?}", &output);
+    warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
     write_output_to_file(output, format!("src/output/result{}.csv", query_number).into());
 
     Ok(())
@@ -75,7 +77,25 @@ pub fn init() -> (Cli, PathBuf) {
     let pwd: PathBuf = env::current_dir().unwrap();
     println!("Current directory: {}", pwd.display());
 
+    if args.reduce.is_some() {
+        test_sqlparser(pwd.join(args.reduce.unwrap()));
+        process::exit(0);
+    }
+
     (args, pwd)
+}
+
+fn test_sqlparser(reduced_file: PathBuf) {
+    let queries = fs::read_to_string(&reduced_file);
+    let binding = queries.unwrap();
+    let query_selection = binding.split_inclusive(";");
+    for query in query_selection {
+        if let Err(parsed_query) = generate_ast(query) {
+            warn!("{}", parsed_query);
+        }
+    }
+
+
 }
 
 #[derive(Parser)]
@@ -84,4 +104,7 @@ pub struct Cli {
     query: PathBuf,
     #[arg(long)]
     test: PathBuf,
+    #[arg(long, value_name = "PATH", required_unless_present = "query")]
+    reduce: Option<PathBuf>
 }
+
