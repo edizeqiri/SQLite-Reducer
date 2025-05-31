@@ -24,7 +24,7 @@ pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf) 
         .expect(&format!("Failed to read query path: {:?}", query_path));
         
     warn!("[ANALYSIS] QUERY PATH: {:?}[END ANALYSIS]", query_path);
-    warn!("[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]", query);
+    warn!("[ANALYSIS] ORIGINAL QUERY: {:?}[END ANALYSIS]", query.replace(";;",";").replace("\n"," "));
     (query, pwd.join(args.test))
 }
 
