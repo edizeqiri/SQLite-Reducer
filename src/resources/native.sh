@@ -2,7 +2,7 @@
 
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <query> [oracle]"
-  exit 1
+  exit 2
 fi
 
 query=$1
@@ -17,6 +17,7 @@ run_sqlite() {
   # Run the query inside and capture stdout+stderr
   local output
   output=$("$db_path" -bail :memory: <<< "$query" 2>&1)
+
   local status=$?
 
 
@@ -31,7 +32,14 @@ run_sqlite() {
 out_old=$(run_sqlite "$db_path_old")
 out_new=$(run_sqlite "$db_path_new")
 
+
 output="${out_old}&${out_new}"
+echo "$output"
+
+# if oracle contains disk image malformed then echo 1
+if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
+  exit 1
+fi
 
 if [ -z "$oracle" ]; then
   echo "$output"
@@ -39,4 +47,4 @@ if [ -z "$oracle" ]; then
   exit 0
 fi
 
-echo $([[ "$output" == "$oracle" ]] && echo 1 || echo 0)
+exit $([[ "$output" == "$oracle" ]] && echo 1 || echo 0)

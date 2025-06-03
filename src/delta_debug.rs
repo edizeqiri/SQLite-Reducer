@@ -15,15 +15,18 @@ where
         for delta in &tests {
             let nabla = get_nabla(&data, delta);
 
-            let input_delta = vec_statement_to_string(&delta, ";");
-            let input_nabla = vec_statement_to_string(&nabla, ";");
+            let input_delta = vec_statement_to_string(&delta, ";")?;
+            let input_nabla = vec_statement_to_string(&nabla, ";")?;
+
+            info!("delta: {}", input_delta.len());
+            info!("nable: {}", input_nabla.len());
 
             // use `?` to propagate any I/O/test errors
-            if test_query(&input_delta?)? {
+            if test_query(&input_delta)? {
                 data = delta.clone();
                 reduced = true;
                 break;
-            } else if test_query(&input_nabla?)? {
+            } else if test_query(&input_nabla)? {
                 data = nabla;
                 granularity = granularity.saturating_sub(1);
                 reduced = true;

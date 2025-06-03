@@ -1,0 +1,94 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'reducer'",
+
+            // 1) In cargo.args, only put the Cargo‐side flags:
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=reducer",
+                    "--package=reducer"
+                ],
+                "filter": {
+                    "name": "reducer",
+                    "kind": "bin"
+                }
+            },
+
+            // 2) In the top‐level "args", list exactly what you want
+            //    your binary to see when it starts up:
+            "args": [
+                "--test", "/workspaces/reducer/src/resources/native.sh",
+                "--query", "queries/query17/original_test.sql"
+            ],
+
+            "cwd": "${workspaceFolder}"
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'reducer'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=reducer",
+                    "--package=reducer"
+                ],
+                "filter": {
+                    "name": "reducer",
+                    "kind": "bin"
+                }
+            },
+            // If you want to pass test‐specific arguments (e.g. a -- --ignored or --nocapture),
+            // you would put them here. Otherwise, leave this empty:
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'unnest_select'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=unnest_select",
+                    "--package=reducer"
+                ],
+                "filter": {
+                    "name": "unnest_select",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'unnest_select'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=unnest_select",
+                    "--package=reducer"
+                ],
+                "filter": {
+                    "name": "unnest_select",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
