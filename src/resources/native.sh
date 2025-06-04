@@ -34,7 +34,7 @@ out_new=$(run_sqlite "$db_path_new")
 
 
 output="${out_old}&${out_new}"
-echo "$output"
+#echo "$output"
 
 # if oracle contains disk image malformed then echo 1
 if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
