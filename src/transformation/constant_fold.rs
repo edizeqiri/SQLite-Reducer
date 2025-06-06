@@ -1,10 +1,9 @@
 // src/transform/constant_fold.rs
 
 use crate::transformation::transformer::Transform;
-use sqlparser::ast;
-use sqlparser::ast::Value::{Boolean, Null, Number};
+use sqlparser::ast::Value::{Boolean, Number};
 use sqlparser::ast::{
-    BinaryOperator, Expr as SQLExpr, Insert, Query, SelectItem, SetExpr, Statement, UnaryOperator,
+    BinaryOperator, Expr as SQLExpr, Query, SelectItem, SetExpr, Statement, UnaryOperator,
     ValueWithSpan,
 };
 

@@ -48,7 +48,7 @@ fn find_one_minimal<T>(test: &[T]) -> Result<Vec<T>, Box<dyn Error>>
 where
     T: Clone + ToString + PartialEq,
 {
-    let mut current = test.to_vec();
+    let current = test.to_vec();
     for i in 0..current.len() {
         let mut truncated = current.clone();
         truncated.remove(i);

@@ -6,16 +6,13 @@ use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Output;
 use std::str::from_utf8;
-use std::sync::OnceLock;
 
 static GLOBAL_TEST_SCRIPT_PATH: OnceCell<PathBuf> = OnceCell::new();
 static GLOBAL_EXPECTED_RESULT: OnceCell<String> = OnceCell::new();
 
 pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
-    // `cmd` is now an owned `Command`
     let (output, status) = get_exit_status_from_query(query);
-    
-    // Run it to get an ExitStatus:
+
     info!("{:?}", output);
 
     match status?.code() {
@@ -75,9 +72,7 @@ fn get_exit_status_from_query(query: &String) -> (io::Result<Output>, io::Result
     // Build an owned `Command` here:
     let mut binding = Command::new(test_script_path);
 
-    let cmd = binding
-        .arg(query)
-        .arg(expected_output);
+    let cmd = binding.arg(query).arg(expected_output);
 
     // Return it by value (not by reference):
     (cmd.output(), cmd.status())
