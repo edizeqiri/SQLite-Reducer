@@ -1,6 +1,5 @@
 use crate::transformation::constant_fold::ConstantFold;
 use sqlparser::ast::Statement;
-use sqlparser::parser::Parser;
 
 pub trait Transform {
     fn apply(&self, stmt: Statement) -> Statement;

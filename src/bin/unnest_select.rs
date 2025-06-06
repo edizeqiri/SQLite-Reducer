@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 
 /// A simple struct to hold the byte‐offset and character for each position in the input string.
 struct CharPos {

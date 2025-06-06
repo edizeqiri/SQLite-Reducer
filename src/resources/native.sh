@@ -1,9 +1,19 @@
 #!/bin/bash
-
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <query> [oracle]"
   exit 2
 fi
+
+if [ -f .env ]; then
+  # The `set -a` tells Bash: export all variables that are subsequently defined
+  set -a
+  source .env
+  set +a
+fi
+curr_query_num=$SQL_NUMBER
+oracle_txt_path="queries/query$curr_query_num/oracle.txt"
+
+read -r given_oracle <<< "$oracle_txt_path"
 
 query=$1
 oracle=$2
@@ -16,7 +26,7 @@ run_sqlite() {
   local db_path=$1
   # Run the query inside and capture stdout+stderr
   local output
-  output=$("$db_path" -bail :memory: <<< "$query" 2>&1)
+  output=$("$db_path" -bail :memory: < "$query" 2>&1)
 
   local status=$?
 
@@ -34,11 +44,11 @@ out_new=$(run_sqlite "$db_path_new")
 
 
 output="${out_old}&${out_new}"
-#echo "$output"
+echo $output
 
-# if oracle contains disk image malformed then echo 1
+# if oracle contains disk image malformed then reduction successful
 if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
-  exit 1
+  exit 0
 fi
 
 if [ -z "$oracle" ]; then
@@ -47,4 +57,12 @@ if [ -z "$oracle" ]; then
   exit 0
 fi
 
-exit $([[ "$output" == "$oracle" ]] && echo 1 || echo 0)
+
+# if [[ "$given_oracle" == *DIFF* ]]; then
+#   # exit 0 when out_old == out_new, exit 1 otherwise
+#   exit $([[ "$out_old" == "$out_new" ]] && echo 0 || echo 1)
+# fi
+
+# exit 0 when output == oracle, exit 1 otherwise
+exit $([[ "$output" == "$oracle" ]] && echo 0 || echo 1)
+

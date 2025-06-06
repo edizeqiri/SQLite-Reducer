@@ -1,11 +1,7 @@
 use crate::delta_debug::delta_debug;
-use crate::driver;
-use crate::transformation;
 use crate::transformation::transformer::transform;
-use crate::utils::vec_statement_to_string;
-use log::{info, warn};
+use log::info;
 use sqlparser::ast::Statement;
-use std::io::{Error, Read};
 
 pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let current_ast_length = current_ast.len();
@@ -17,6 +13,6 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std
         current_ast_length,
         minimal_stmt.as_ref().map(|v| v.len())
     );
-    
+
     minimal_stmt
 }

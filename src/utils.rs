@@ -1,9 +1,9 @@
+
 use clap::Parser;
 use log::*;
 use std::path::PathBuf;
-use std::{env, fs, process};
 use std::time::Duration;
-use regex::Regex;
+use std::{env, fs, process};
 
 use crate::parser::generate_ast;
 
@@ -22,8 +22,22 @@ where
         + separator)
 }
 
-pub fn print_result(query_path: &String, orig_query: &String, reduced: &Vec<String>, elapsed_time: Duration) -> Result<(), Box<dyn std::error::Error>> {
-    // orig-num-stmt&reduced-num-stmt&orig-token&reduced-token&time-taken
+pub fn get_test_case_location() -> PathBuf {
+
+    let path: PathBuf = env::var("TEST_CASE_LOCATION")
+                        .map(PathBuf::from) // converts the String into a PathBuf
+                        .unwrap_or_else(|_| env::current_dir().unwrap().join("query.sql"));
+    info!("Path to final query: {:?}", path);
+    path
+}
+
+pub fn print_result(
+    query_path: &String,
+    orig_query: &String,
+    reduced: &Vec<String>,
+    elapsed_time: Duration,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // orig-num-stmt,reduced-num-stmt,orig-token,reduced-token,time-taken
 
     let reduced_query = reduced.join(";") + ";";
 
@@ -35,22 +49,18 @@ pub fn print_result(query_path: &String, orig_query: &String, reduced: &Vec<Stri
 
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
 
-    let (_, query_number) = query_path
-        .rsplit('/')
-        .nth(1).unwrap()
-        .split_at(5);
+    let (_, query_number) = query_path.rsplit('/').nth(1).unwrap().split_at(5);
 
     let output = format!(
         "{},{},{},{},{}",
-        orig_num_stmt,
-        reduced_num_stmt,
-        orig_num_token,
-        reduced_num_token,
-        time_taken
+        orig_num_stmt, reduced_num_stmt, orig_num_token, reduced_num_token, time_taken
     );
 
     warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
-    write_output_to_file(output, format!("src/output/result{}.csv", query_number).into());
+    write_output_to_file(
+        &output,
+        &format!("src/output/result{}.csv", query_number).into(),
+    );
 
     Ok(())
 }
@@ -58,15 +68,18 @@ pub fn print_result(query_path: &String, orig_query: &String, reduced: &Vec<Stri
 pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf, String) {
     let query_path = pwd.join(args.query);
 
-
     let query = fs::read_to_string(&query_path)
         .expect(&format!("Failed to read query path: {:?}", query_path));
-    
-    (query, pwd.join(args.test), query_path.to_string_lossy().to_string())
+
+    (
+        query,
+        pwd.join(args.test),
+        query_path.to_string_lossy().to_string(),
+    )
 }
 
-fn write_output_to_file(content: String, path: PathBuf) {
-    fs::write(path, content).unwrap();
+pub fn write_output_to_file(content: &String, path: &PathBuf) {
+    fs::write(path, content).expect(&format!("The path is wrong: {:?}", path));
 }
 
 pub fn init() -> (Cli, PathBuf) {
@@ -94,8 +107,6 @@ fn test_sqlparser(reduced_file: PathBuf) {
             warn!("{}", parsed_query);
         }
     }
-
-
 }
 
 #[derive(Parser)]
@@ -105,6 +116,16 @@ pub struct Cli {
     #[arg(long)]
     test: PathBuf,
     #[arg(long, value_name = "PATH", required_unless_present = "query")]
-    reduce: Option<PathBuf>
+    reduce: Option<PathBuf>,
 }
 
+#[test]
+fn test_existing_test_case_location() {
+    env::set_var("TEST_CASE_LOCATION", "/hello/world");
+    assert_eq!(get_test_case_location().to_str().unwrap(), "/hello/world");
+}
+
+#[test]
+fn test_inexitent_test_case_location() {
+    assert_eq!(get_test_case_location().to_str().unwrap(), "/workspaces/reducer/query.sql");
+}
