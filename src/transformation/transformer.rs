@@ -1,4 +1,4 @@
-use crate::transformation::constant_fold::ConstantFold;
+/* use crate::transformation::constant_fold::ConstantFold;
 use sqlparser::ast::Statement;
 
 pub trait Transform {
@@ -46,3 +46,4 @@ pub fn transform(mut stmts: Vec<Statement>) -> Vec<Statement> {
     }
     stmts
 }
+ */

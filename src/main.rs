@@ -4,6 +4,7 @@ mod parser;
 mod reducer;
 mod transformation;
 mod utils;
+pub mod statements;
 
 use crate::delta_debug::delta_debug;
 use log::*;

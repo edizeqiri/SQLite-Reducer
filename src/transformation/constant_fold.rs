@@ -1,4 +1,4 @@
-// src/transform/constant_fold.rs
+/* // src/transform/constant_fold.rs
 
 use crate::transformation::transformer::Transform;
 use sqlparser::ast::Value::{Boolean, Number};
@@ -364,3 +364,4 @@ mod test {
         )
     }
 }
+ */

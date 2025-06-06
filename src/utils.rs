@@ -81,14 +81,14 @@ pub fn init() -> (Cli, PathBuf) {
     println!("Current directory: {}", pwd.display());
 
     if args.reduce.is_some() {
-        test_sqlparser(pwd.join(args.reduce.unwrap()));
+        //test_sqlparser(pwd.join(args.reduce.unwrap()));
         process::exit(0);
     }
 
     (args, pwd)
 }
 
-fn test_sqlparser(reduced_file: PathBuf) {
+/* fn test_sqlparser(reduced_file: PathBuf) {
     let queries = fs::read_to_string(&reduced_file);
     let binding = queries.unwrap();
     let query_selection = binding.split_inclusive(";");
@@ -97,7 +97,7 @@ fn test_sqlparser(reduced_file: PathBuf) {
             warn!("{}", parsed_query);
         }
     }
-}
+} */
 
 #[derive(Parser)]
 pub struct Cli {

@@ -1,16 +1,18 @@
-use sqlparser::ast::Statement;
-use sqlparser::dialect;
-use sqlparser::parser::Parser;
+use log::warn;
+use crate::statements::statement::Statement;
 
 pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
-    let dialect = dialect::SQLiteDialect {};
-    let stmts = Parser::parse_sql(&dialect, sql).map_err(|e| {
-        let msg = format!("Failed to parse SQL: {}", sql);
-        std::io::Error::new(std::io::ErrorKind::Other, msg)
-    })?;
-
+    let binding = sql;
+    let query_selection = binding.split_inclusive(";");
+    let parsed_queries: Vec<Statement> = Vec::new();
+    for query in query_selection {
+        if let Err(parsed_query) = generate_ast(query) {
+            warn!("{}", parsed_query);
+        }
+    }
+    
     //info!("AST: {:#?}", stmts);
-    Ok(stmts)
+    Ok(parsed_queries)
 }
 
 #[test]
