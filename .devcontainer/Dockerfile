@@ -56,6 +56,10 @@ RUN pip install -r requirements.txt
 ENV CARGO_HOME=/home/root/.cargo
 ENV RUSTUP_HOME=/home/root/.rustup
 ENV PATH="$CARGO_HOME/bin:${PATH}"
+ENV TEST_CASE_LOCATION=/ops/query.sql
+
+ENV CARGO_TARGET_DIR=/target
+ENV RUST_LOG=info
 
 WORKDIR /workspace
 
