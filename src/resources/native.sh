@@ -26,7 +26,7 @@ run_sqlite() {
   local db_path=$1
   # Run the query inside and capture stdout+stderr
   local output
-  output=$("$db_path" -bail :memory: < "$query" 2>&1)
+  output=$("$db_path" -bail :memory: < "$query" 2>&1) # sqlite3 < /output/query.sql
 
   local status=$?
 
@@ -44,7 +44,7 @@ out_new=$(run_sqlite "$db_path_new")
 
 
 output="${out_old}&${out_new}"
-echo $output
+#echo $output
 
 # if oracle contains disk image malformed then reduction successful
 if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
