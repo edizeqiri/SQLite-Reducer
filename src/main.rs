@@ -8,7 +8,7 @@ mod utils;
 
 use crate::delta_debug::delta_debug;
 use crate::utils::vec_statement_to_string;
-use crate::{parser::generate_ast, reducer::reduce, utils::vec_statement_to_string};
+use crate::{parser::generate_ast, reducer::reduce};
 use log::*;
 use std::time::Instant;
 
@@ -16,7 +16,6 @@ use std::time::Instant;
 // cargo run --package reducer --bin reducer -- --query queries/query1/original_test.sql --test src/resources/native.sh
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start = Instant::now(); // start timing
-
 
     let path_to_save = utils::get_test_case_location();
     let (args, pwd) = utils::init();

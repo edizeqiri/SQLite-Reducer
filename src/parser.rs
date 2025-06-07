@@ -2,7 +2,7 @@ use crate::statements::{parsers, types::Statement};
 
 pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let mut parsed_queries = Vec::new();
-    let parsini: Vec<String> = query
+    let parsini: Vec<String> = sql
         .replace(";;", ";")
         .replace('\n', " ")
         .replace('\r', "")

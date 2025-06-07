@@ -1,10 +1,9 @@
-
 use clap::Parser;
 use log::*;
-use std::path::PathBuf;
-use std::{env, fs, process};
-use std::time::Duration;
 use regex::Regex;
+use std::path::PathBuf;
+use std::time::Duration;
+use std::{env, fs, process};
 
 use crate::parser::generate_ast;
 
@@ -24,10 +23,9 @@ where
 }
 
 pub fn get_test_case_location() -> PathBuf {
-
     let path: PathBuf = env::var("TEST_CASE_LOCATION")
-                        .map(PathBuf::from) // converts the String into a PathBuf
-                        .unwrap_or_else(|_| env::current_dir().unwrap().join("query.sql"));
+        .map(PathBuf::from) // converts the String into a PathBuf
+        .unwrap_or_else(|_| env::current_dir().unwrap().join("query.sql"));
     info!("Path to final query: {:?}", path);
     path
 }
@@ -39,7 +37,6 @@ pub fn print_result(
     reduced: &String,
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
-
     let reduced_query = reduced;
 
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
@@ -134,6 +131,9 @@ fn test_existing_test_case_location() {
 
 #[test]
 fn test_inexitent_test_case_location() {
-    assert_eq!(get_test_case_location().to_str().unwrap(), "/workspaces/reducer/query.sql");
+    env::remove_var("TEST_CASE_LOCATION");
+    assert_eq!(
+        get_test_case_location().to_str().unwrap(),
+        "/workspaces/reducer/query.sql"
+    );
 }
-

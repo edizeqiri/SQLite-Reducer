@@ -16,7 +16,9 @@ static GLOBAL_EXPECTED_RESULT: OnceCell<String> = OnceCell::new();
 static TEST_CASE_LOCATION: OnceCell<PathBuf> = OnceCell::new();
 
 pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
-    let test_case_location = TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
+    let test_case_location = TEST_CASE_LOCATION
+        .get()
+        .expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     // write query into the corresponding file
     utils::write_output_to_file(query, test_case_location);
@@ -34,7 +36,7 @@ pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
 pub fn init_query(
     query: &PathBuf,
     test_script_path: PathBuf,
-    test_case_location: &PathBuf
+    test_case_location: &PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     GLOBAL_TEST_SCRIPT_PATH
         .set(test_script_path)
@@ -50,7 +52,9 @@ pub fn init_query(
         .set(expected_result)
         .expect("test script path already initialized");
 
-    TEST_CASE_LOCATION.set(PathBuf::from(test_case_location)).expect("where is the test case location");
+    TEST_CASE_LOCATION
+        .set(PathBuf::from(test_case_location))
+        .expect("where is the test case location");
 
     Ok(())
 }
@@ -60,11 +64,7 @@ fn get_output_from_query(query: &PathBuf) -> io::Result<Output> {
         .get()
         .expect("We are missing a GLOBAL_TEST_SCRIPT_PATH?!");
 
-
-    Command::new(test_script_path)
-        .arg(query)
-        .arg("")
-        .output()
+    Command::new(test_script_path).arg(query).arg("").output()
 }
 
 fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) {
@@ -77,14 +77,14 @@ fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) 
         .map(|s| s.as_str())
         .unwrap_or("");
 
-    let test_case_location = TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
+    let test_case_location = TEST_CASE_LOCATION
+        .get()
+        .expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     // Build an owned `Command` here:
     let mut binding = Command::new(test_script_path);
 
-    let cmd = binding
-        .arg(query)
-        .arg(expected_output);
+    let cmd = binding.arg(&test_case_location).arg(expected_output);
 
     // Return it by value (not by reference):
     (cmd.output(), cmd.status())
