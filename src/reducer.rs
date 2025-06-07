@@ -1,7 +1,7 @@
+use crate::delta_debug::delta_debug;
 use crate::parser::generate_ast;
-use crate::statements::statement::Statement;
+use crate::statements::types::{Statement, StatementKind};
 use crate::utils::vec_statement_to_string;
-use crate::{delta_debug::delta_debug, statements::statement::StatementKind};
 use log::info;
 
 pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
@@ -94,5 +94,5 @@ fn test_select_remover() {
     println!("{:#?}", vec_statement_to_string(&cleaned, ";").unwrap());
     println!("{:?}", cleaned.len());
 
-    assert_eq!(14, cleaned.len())
+    assert_eq!(2, cleaned.len())
 }

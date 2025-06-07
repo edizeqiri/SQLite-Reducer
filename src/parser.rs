@@ -1,21 +1,28 @@
-use crate::statements::statement::{self, Statement};
-use log::warn;
+use crate::statements::{parsers, types::Statement};
 
 pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let mut parsed_queries = Vec::new();
+    let parsini: Vec<String> = sql
+        .replace(";;", ";")
+        .replace('\n', " ")
+        .replace('\r', "")
+        .trim()
+        .split(';')
+        .filter(|part| !part.to_string().is_empty())
+        .map(|part| part.to_string())
+        .collect();
 
-    for raw in sql.split_terminator(';') {
-        let query = raw.trim();
-        if query.is_empty() {
+    for raw in parsini {
+        if raw.is_empty() {
             continue;
         }
 
         // Try each parser in sequence
-        let stmt = statement::parse_create_table_statement(query)
-            .or_else(|_| statement::parse_insert_statement(query))
-            .or_else(|_| statement::parse_create_view_statement(query))
-            .or_else(|_| statement::parse_select_statement(query))
-            .unwrap_or_else(|_| Statement::new(query));
+        let stmt = parsers::parse_create_table_statement(&raw)
+            .or_else(|_| parsers::parse_insert_statement(&raw))
+            .or_else(|_| parsers::parse_create_view_statement(&raw))
+            .or_else(|_| parsers::parse_select_statement(&raw))
+            .unwrap_or_else(|_| Statement::new(&raw));
 
         parsed_queries.push(stmt);
     }

@@ -24,12 +24,12 @@ where
 pub fn print_result(
     query_path: &String,
     orig_query: &String,
-    reduced: &Vec<String>,
+    reduced: &String,
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // orig-num-stmt&reduced-num-stmt&orig-token&reduced-token&time-taken
 
-    let reduced_query = reduced.join(";") + ";";
+    let reduced_query = reduced;
 
     let orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
     let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
