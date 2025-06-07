@@ -34,7 +34,7 @@ RUN python3 -m ipykernel install --user --name=mykernel --display-name "Python 3
 
 # ---------- Install Rust toolchain ----------
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --default-toolchain stable && \
+    | sh -s -- -y && \
     . "$HOME/.cargo/env"
 
 # ---------- Configure SSH for root login ----------
