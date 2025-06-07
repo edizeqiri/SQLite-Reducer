@@ -60,7 +60,7 @@ fi
 
 
 #echo "BASH $output"
-echo "OUT BASH $output ENDBASH"
+#echo "OUT BASH $output ENDBASH"
 
 
 if [[ "$given_oracle" == *DIFF* ]]; then
@@ -70,7 +70,7 @@ if [[ "$given_oracle" == *DIFF* ]]; then
   parse_new=${out_new#Parse error[[:space:]]}
   parse_new=${parse_new#Runtime error[[:space:]]}
 
-  echo "BASH $parse_old&$parse_new ENDBASH"
+  #echo "BASH $parse_old&$parse_new ENDBASH"
   # exit 0 when out_old == out_new, exit 1 otherwise
   exit $([[ "$parse_old" != "$parse_new" ]] && echo 0 || echo 1)
 fi
