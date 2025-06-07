@@ -2,8 +2,9 @@
 use clap::Parser;
 use log::*;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::{env, fs, process};
+use std::time::Duration;
+use regex::Regex;
 
 use crate::parser::generate_ast;
 
@@ -31,15 +32,15 @@ pub fn get_test_case_location() -> PathBuf {
     path
 }
 
+// orig-num-stmt,reduced-num-stmt,orig-token,reduced-token,time-taken
 pub fn print_result(
     query_path: &String,
     orig_query: &String,
-    reduced: &Vec<String>,
+    reduced: &String,
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // orig-num-stmt,reduced-num-stmt,orig-token,reduced-token,time-taken
 
-    let reduced_query = reduced.join(";") + ";";
+    let reduced_query = reduced;
 
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
 
@@ -97,14 +98,14 @@ pub fn init() -> (Cli, PathBuf) {
     println!("Current directory: {}", pwd.display());
 
     if args.reduce.is_some() {
-        test_sqlparser(pwd.join(args.reduce.unwrap()));
+        //test_sqlparser(pwd.join(args.reduce.unwrap()));
         process::exit(0);
     }
 
     (args, pwd)
 }
 
-fn test_sqlparser(reduced_file: PathBuf) {
+/* fn test_sqlparser(reduced_file: PathBuf) {
     let queries = fs::read_to_string(&reduced_file);
     let binding = queries.unwrap();
     let query_selection = binding.split_inclusive(";");
@@ -113,7 +114,7 @@ fn test_sqlparser(reduced_file: PathBuf) {
             warn!("{}", parsed_query);
         }
     }
-}
+} */
 
 #[derive(Parser)]
 pub struct Cli {

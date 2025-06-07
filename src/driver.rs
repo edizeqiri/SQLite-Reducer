@@ -82,7 +82,9 @@ fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) 
     // Build an owned `Command` here:
     let mut binding = Command::new(test_script_path);
 
-    let cmd = binding.arg(test_case_location).arg(expected_output);
+    let cmd = binding
+        .arg(query)
+        .arg(expected_output);
 
     // Return it by value (not by reference):
     (cmd.output(), cmd.status())
