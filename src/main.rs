@@ -6,7 +6,7 @@ mod transformation;
 mod utils;
 pub mod statements;
 
-use crate::delta_debug::delta_debug;
+use crate::{delta_debug::delta_debug, utils::vec_statement_to_string};
 use log::*;
 use std::time::Instant;
 
@@ -35,10 +35,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reduced = delta_debug(parsini.clone(), 2)?;
     info!("query reduced with params {:?}", reduced.len());
 
-    /*&let ast = parser::generate_ast(&query)
+    let ast = parser::generate_ast(&query)
             .and_then(reducer::reduce)
             .and_then(|ast| vec_statement_to_string(&ast, "\n"));
-    */
+    info!("{:?}",ast);
+    
     info!("writing results to file");
     utils::print_result(&query_path, &query, &reduced, start.elapsed())
         .expect("TODO: panic message");

@@ -38,6 +38,13 @@ impl Statement {
             kind: StatementKind::Insert { table, columns_and_values },
         }
     }
+
+    pub fn new(original: &str) -> Self {
+        Statement {
+            original: original.to_string(),
+            kind: StatementKind::Unknown {  }
+        }
+    }
 }
 
 impl Display for Statement {

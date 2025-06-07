@@ -1,17 +1,23 @@
 use log::warn;
-use crate::statements::statement::Statement;
+use crate::statements::statement::{self, Statement};
 
 pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
-    let binding = sql;
-    let query_selection = binding.split_inclusive(";");
-    let parsed_queries: Vec<Statement> = Vec::new();
-    for query in query_selection {
-        if let Err(parsed_query) = generate_ast(query) {
-            warn!("{}", parsed_query);
+    let mut parsed_queries = Vec::new();
+
+    for raw in sql.split_terminator(';') {
+        let query = raw.trim();
+        if query.is_empty() {
+            continue;
         }
+
+        // Try CREATE, then INSERT, otherwise Unknown
+        let stmt = statement::parse_create_table_statement(query)
+            .or_else(|_| statement::parse_insert_statement(query))
+            .unwrap_or_else(|_| Statement::new(query));
+
+        parsed_queries.push(stmt);
     }
-    
-    //info!("AST: {:#?}", stmts);
+
     Ok(parsed_queries)
 }
 

@@ -24,7 +24,7 @@
             //    your binary to see when it starts up:
             "args": [
                 "--test", "/workspaces/reducer/src/resources/native.sh",
-                "--query", "queries/query17/original_test.sql"
+                "--query", "queries/query2/original_test.sql"
             ],
 
             "cwd": "${workspaceFolder}"
