@@ -5,6 +5,7 @@ mod reducer;
 pub mod statements;
 mod transformation;
 mod utils;
+pub mod delta_debug_stmt;
 
 use crate::delta_debug::delta_debug;
 use crate::utils::vec_statement_to_string;
