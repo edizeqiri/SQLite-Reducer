@@ -62,14 +62,11 @@ fn get_output_from_query(query: &PathBuf) -> io::Result<Output> {
     let test_script_path = GLOBAL_TEST_SCRIPT_PATH
         .get()
         .expect("We are missing a GLOBAL_TEST_SCRIPT_PATH?!");
-    let expected_output: &str = GLOBAL_EXPECTED_RESULT
-        .get() // Option<&String>
-        .map(|s| s.as_str()) // Option<&str>
-        .unwrap_or(""); // &str
+
 
     Command::new(test_script_path)
         .arg(query)
-        .arg(expected_output)
+        .arg("")
         .output()
 }
 

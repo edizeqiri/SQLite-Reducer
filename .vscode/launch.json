@@ -10,7 +10,7 @@
                 "CARGO_TARGET_DIR": "/target",
                 "RUST_LOG": "info",
                 "TEST_CASE_LOCATION": "/output/query.sql",
-                "SQL_NUMBER": "2"
+                "SQL_NUMBER": "14"
             },
 
             // 1) In cargo.args, only put the Cargo‐side flags:
@@ -30,7 +30,7 @@
             //    your binary to see when it starts up:
             "args": [
                 "--test", "/workspaces/reducer/src/resources/native.sh",
-                "--query", "queries/query2/original_test.sql"
+                "--query", "queries/query14/original_test.sql"
             ],
 
             "cwd": "${workspaceFolder}"

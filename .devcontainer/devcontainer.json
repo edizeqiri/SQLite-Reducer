@@ -6,14 +6,24 @@
 	"dockerFile": "Dockerfile",
 	"forwardPorts": [8888],
     "postCreateCommand": "jupyter notebook --ip=0.0.0.0 --port=8888 --NotebookApp.token='' --NotebookApp.password='' --no-browser --allow-root",
-    "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-toolsai.jupyter",
-        "ms-vscode-remote.remote-containers",
-        "tomoki1207.pdf",
-        "george-alisson.html-preview-vscode",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+    "george-alisson.html-preview-vscode",
+    "llvm-vs-code-extensions.lldb-dap",
+    "ms-python.debugpy",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+    "ms-toolsai.jupyter-keymap",
+    "ms-toolsai.jupyter-renderers",
+    "ms-toolsai.vscode-jupyter-cell-tags",
+    "ms-toolsai.vscode-jupyter-slideshow",
+    "ms-vscode-remote.remote-containers",
+    "rust-lang.rust-analyzer"
     ]
+		}
+	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

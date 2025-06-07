@@ -26,7 +26,7 @@ run_sqlite() {
   local db_path=$1
   # Run the query inside and capture stdout+stderr
   local output
-  output=$("$db_path" -bail :memory: < "$query" 2>&1) # sqlite3 < /output/query.sql
+  output=$("$db_path" < "$query" 2>&1) # sqlite3 < /output/query.sql
 
   local status=$?
 
@@ -46,17 +46,20 @@ out_new=$(run_sqlite "$db_path_new")
 output="${out_old}&${out_new}"
 #echo $output
 
-# if oracle contains disk image malformed then reduction successful
-if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
-  exit 0
-fi
-
-if [ -z "$oracle" ]; then
+if [ "$oracle" = "" ]; then
   echo "$output"
   #echo "$output;" >> /Users/saschatran/Desktop/Uni_gits/reducer/src/resources/test.csv
   exit 0
 fi
 
+# if oracle contains disk image malformed then reduction successful
+if [[ "$output" == *disk\ image\ is\ malformed* ]]; then
+ # echo "BASH $output"
+  exit 0
+fi
+
+
+#echo "BASH $output"
 
 # if [[ "$given_oracle" == *DIFF* ]]; then
 #   # exit 0 when out_old == out_new, exit 1 otherwise
