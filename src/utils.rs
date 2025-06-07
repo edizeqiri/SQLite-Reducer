@@ -41,7 +41,13 @@ pub fn print_result(
 
     let reduced_query = reduced.join(";") + ";";
 
-    let orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
+    let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
+
+    // if it doesn’t already end in a semicolon (ignoring trailing whitespace), bump it by one
+    if !orig_query.trim_end().ends_with(';') {
+        orig_num_stmt += 1;
+    }
+
     let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
 
     let orig_num_token = orig_query.split_whitespace().count();

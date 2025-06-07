@@ -97,4 +97,4 @@ SELECT  AVG(table_1_c0) FROM table_1, table_0, table_2 WHERE 1 IS NULL GROUP BY 
 ANALYZE table_4 ;;
 ;;
 CREATE TRIGGER trigger_5 BEFORE INSERT ON table_0 BEGIN DELETE FROM table_2 ; UPDATE table_1 SET table_1_c0 = 0.0 WHERE IFNULL ( 1 , 1 ) ; END;
- SELECT DISTINCT * FROM table_3, table_2 WHERE EXISTS ( SELECT  table_3_c1 FROM table_3 LIMIT NULL ) LIMIT 3;
+SELECT DISTINCT * FROM table_3, table_2 WHERE EXISTS ( SELECT  table_3_c1 FROM table_3 LIMIT NULL ) LIMIT 3;
