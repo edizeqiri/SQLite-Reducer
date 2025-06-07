@@ -13,7 +13,7 @@ fi
 curr_query_num=$SQL_NUMBER
 oracle_txt_path="queries/query$curr_query_num/oracle.txt"
 
-read -r given_oracle <<< "$oracle_txt_path"
+read -r given_oracle < "$oracle_txt_path"
 
 query=$1
 oracle=$2
@@ -60,11 +60,20 @@ fi
 
 
 #echo "BASH $output"
+echo "OUT BASH $output ENDBASH"
 
-# if [[ "$given_oracle" == *DIFF* ]]; then
-#   # exit 0 when out_old == out_new, exit 1 otherwise
-#   exit $([[ "$out_old" == "$out_new" ]] && echo 0 || echo 1)
-# fi
+
+if [[ "$given_oracle" == *DIFF* ]]; then
+  parse_old=${out_old#Error: }
+
+  # remove weird prefixes
+  parse_new=${out_new#Parse error[[:space:]]}
+  parse_new=${parse_new#Runtime error[[:space:]]}
+
+  echo "BASH $parse_old&$parse_new ENDBASH"
+  # exit 0 when out_old == out_new, exit 1 otherwise
+  exit $([[ "$parse_old" != "$parse_new" ]] && echo 0 || echo 1)
+fi
 
 # exit 0 when output == oracle, exit 1 otherwise
 exit $([[ "$output" == "$oracle" ]] && echo 0 || echo 1)

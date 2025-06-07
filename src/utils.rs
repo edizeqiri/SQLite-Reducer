@@ -135,3 +135,4 @@ fn test_existing_test_case_location() {
 fn test_inexitent_test_case_location() {
     assert_eq!(get_test_case_location().to_str().unwrap(), "/workspaces/reducer/query.sql");
 }
+

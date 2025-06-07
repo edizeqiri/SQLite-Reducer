@@ -8,7 +8,7 @@ pub fn delta_debug<T>(mut data: Vec<T>, mut granularity: usize) -> Result<Vec<T>
 where
     T: Clone + ToString + std::cmp::PartialEq + std::fmt::Debug,
 {
-    while granularity <= data.len() {
+    while granularity > 1 && granularity <= data.len() {
         let tests = split_tests(&data, granularity);
         let mut reduced = false;
 
@@ -18,8 +18,8 @@ where
             let input_delta = vec_statement_to_string(&delta, ";")?;
             let input_nabla = vec_statement_to_string(&nabla, ";")?;
 
-            info!("delta: {}", input_delta.len());
-            info!("nable: {}", input_nabla.len());
+            info!("delta: {}", delta.len());
+            info!("nabla: {}", nabla.len());
 
             // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {

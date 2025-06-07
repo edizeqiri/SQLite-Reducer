@@ -23,9 +23,6 @@ pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
     // `cmd` is now an owned `Command`
     let (output, status) = get_exit_status_from_query();
 
-    // Run it to get an ExitStatus:
-    info!("{:?}", output);
-
     match status?.code() {
         Some(0) => Ok(true),
         Some(1) => Ok(false),

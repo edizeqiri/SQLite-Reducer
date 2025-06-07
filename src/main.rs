@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .replace('\r', "")
         .trim()
         .split(';')
-        .filter(|part| !part.to_string().is_empty())
+        .filter(|part| !part.trim().is_empty())
         .map(|part| part.to_string())
         .collect();
 
