@@ -1,5 +1,5 @@
-use log::warn;
 use crate::statements::statement::{self, Statement};
+use log::warn;
 
 pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let mut parsed_queries = Vec::new();
@@ -10,9 +10,11 @@ pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Err
             continue;
         }
 
-        // Try CREATE, then INSERT, otherwise Unknown
+        // Try each parser in sequence
         let stmt = statement::parse_create_table_statement(query)
             .or_else(|_| statement::parse_insert_statement(query))
+            .or_else(|_| statement::parse_create_view_statement(query))
+            .or_else(|_| statement::parse_select_statement(query))
             .unwrap_or_else(|_| Statement::new(query));
 
         parsed_queries.push(stmt);
@@ -126,5 +128,4 @@ CREATE TRIGGER trigger_5 BEFORE INSERT ON table_0 BEGIN DELETE FROM table_2 ; UP
 ";
     let a = generate_ast(query);
     print!("{:?}", a);
-
 }

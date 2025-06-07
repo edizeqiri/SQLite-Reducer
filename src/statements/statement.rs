@@ -5,26 +5,64 @@ use std::{
 
 use regex::Regex;
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Statement {
     original: String,
-    kind: StatementKind,
+    pub kind: StatementKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Column {
+    pub table: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Condition {
+    pub table: String,
+    pub column: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WithClause {
+    pub name: String,
+    pub query: Box<Statement>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementKind {
-    CreateTable { name: String, columns: HashMap<String, String> },
-    Insert      { table: String, columns_and_values: HashMap<String, String> },
-    Select      { /* if you had select‐specific fields, they'd go here */ },
-    CreateView  { /* if you had view‐specific fields, they'd go here */ },
-    Drop        { /* …drop‐specific fields… */ },
-    Unknown     { /* … */ },
+    CreateTable {
+        name: String,
+        columns: HashMap<String, String>,
+    },
+    Insert {
+        table: String,
+        columns_and_values: HashMap<String, String>,
+    },
+    Select {
+        with_clauses: Vec<WithClause>,
+        columns: Vec<Column>,
+        tables: Vec<String>,
+        conditions: Vec<Condition>,
+        subqueries: Vec<Statement>,
+        is_distinct: bool,
+    },
+    CreateView {
+        name: String,
+        query: Box<Statement>,
+    },
+    Drop,
+    Unknown,
 }
 
 impl Statement {
     /// Construct a CREATE TABLE statement.
-    pub fn new_create_table(original: String, name: String, columns: HashMap<String, String>) -> Self {
+    pub fn new_create_table(
+        original: String,
+        name: String,
+        columns: HashMap<String, String>,
+    ) -> Self {
         Statement {
             original,
             kind: StatementKind::CreateTable { name, columns },
@@ -32,17 +70,138 @@ impl Statement {
     }
 
     /// Construct an INSERT statement.
-    pub fn new_insert(original: String, table: String, columns_and_values: HashMap<String, String>) -> Self {
+    pub fn new_insert(
+        original: String,
+        table: String,
+        columns_and_values: HashMap<String, String>,
+    ) -> Self {
         Statement {
             original,
-            kind: StatementKind::Insert { table, columns_and_values },
+            kind: StatementKind::Insert {
+                table,
+                columns_and_values,
+            },
+        }
+    }
+
+    pub fn new_select(
+        original: String,
+        with_clauses: Vec<WithClause>,
+        columns: Vec<Column>,
+        tables: Vec<String>,
+        conditions: Vec<Condition>,
+        subqueries: Vec<Statement>,
+        is_distinct: bool,
+    ) -> Self {
+        Statement {
+            original,
+            kind: StatementKind::Select {
+                with_clauses,
+                columns,
+                tables,
+                conditions,
+                subqueries,
+                is_distinct,
+            },
+        }
+    }
+
+    pub fn new_create_view(original: String, name: String, query: Statement) -> Self {
+        Statement {
+            original,
+            kind: StatementKind::CreateView {
+                name,
+                query: Box::new(query),
+            },
         }
     }
 
     pub fn new(original: &str) -> Self {
         Statement {
             original: original.to_string(),
-            kind: StatementKind::Unknown {  }
+            kind: StatementKind::Unknown,
+        }
+    }
+
+    pub fn get_create_table_name(&self) -> Option<&String> {
+        if let StatementKind::CreateTable { name, .. } = &self.kind {
+            Some(name)
+        } else {
+            None
+        }
+    }
+
+    pub fn remove_table_references(&mut self, table: &str) {
+        match &mut self.kind {
+            StatementKind::Select {
+                with_clauses,
+                columns,
+                tables,
+                conditions,
+                subqueries,
+                ..
+            } => {
+                // Remove table from tables list
+                tables.retain(|t| t != table);
+
+                // Remove columns referencing the table
+                columns.retain(|col| col.table.as_ref() != Some(&table.to_string()));
+
+                // Remove conditions referencing the table
+                conditions.retain(|cond| cond.table != table);
+
+                // Process WITH clauses
+                for with_clause in with_clauses {
+                    with_clause.query.remove_table_references(table);
+                }
+
+                // Recursively process subqueries
+                for subquery in subqueries {
+                    subquery.remove_table_references(table);
+                }
+
+                // Update the original query string
+                let mut new_query = self.original.clone();
+                // Remove table from FROM clause
+                let from_pattern = format!(r",\s*{}\b|\b{}\s*,", table, table);
+                new_query = Regex::new(&from_pattern)
+                    .unwrap()
+                    .replace_all(&new_query, "")
+                    .to_string();
+                self.original = new_query;
+            }
+            StatementKind::CreateView { name, query } => {
+                query.remove_table_references(table);
+                // Update the original query string to match the modified query
+                self.original = format!("CREATE VIEW {} AS {}", name, query.original);
+            }
+            StatementKind::Unknown => {
+                // Try to parse as a SELECT statement if it contains SELECT
+                if self.original.to_uppercase().contains("SELECT") {
+                    if let Ok(mut select_stmt) = parse_select_statement(&self.original) {
+                        select_stmt.remove_table_references(table);
+                        self.kind = select_stmt.kind;
+                        self.original = select_stmt.original;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn get_tables(&self) -> Vec<&String> {
+        match &self.kind {
+            StatementKind::Select {
+                tables, subqueries, ..
+            } => {
+                let mut all_tables = tables.iter().collect::<Vec<_>>();
+                for subquery in subqueries {
+                    all_tables.extend(subquery.get_tables());
+                }
+                all_tables
+            }
+            StatementKind::CreateView { query, .. } => query.get_tables(),
+            _ => vec![],
         }
     }
 }
@@ -54,11 +213,10 @@ impl Display for Statement {
     }
 }
 
-
 pub fn parse_insert_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
     // Compile our INSERT regex (case‐insensitive)
     let re = Regex::new(
-        r"(?i)^\s*INSERT(?:\s+OR\s+(?:REPLACE|IGNORE))?\s+INTO\s+([^(]+)\s*\(\s*([^)]*)\s*\)\s*VALUES\s*\(\s*([^)]*)\s*\)"
+        r"(?i)^\s*INSERT(?:\s+OR\s+(?:REPLACE|IGNORE))?\s+INTO\s+([^(]+)\s*\(\s*([^)]*)\s*\)\s*VALUES\s*\(\s*([^)]*)\s*\)",
     )?;
 
     // Try to capture table name, columns‐block, values‐block
@@ -93,14 +251,17 @@ pub fn parse_insert_statement(query: &str) -> Result<Statement, Box<dyn std::err
     }
 
     // Build and return our Statement
-    Ok(Statement::new_insert(query.to_string(), table, columns_and_values))
+    Ok(Statement::new_insert(
+        query.to_string(),
+        table,
+        columns_and_values,
+    ))
 }
-
 
 pub fn parse_create_table_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
     // Compile the regex (case-insensitive, optional IF NOT EXISTS)
     let re = Regex::new(
-        r"(?i)^\s*CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([^(]+)\s*\(\s*([^)]*)\s*\)"
+        r"(?i)^\s*CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([^(]+)\s*\(\s*([^)]*)\s*\)",
     )?;
 
     // Try to match and capture:
@@ -123,7 +284,7 @@ pub fn parse_create_table_statement(query: &str) -> Result<Statement, Box<dyn st
         }
         if let Some(idx) = def.find(char::is_whitespace) {
             let col = def[..idx].to_string();
-            let ty  = def[idx..].trim().to_string();
+            let ty = def[idx..].trim().to_string();
             columns.insert(col, ty);
         } else {
             // no whitespace? treat the whole thing as column name
@@ -132,7 +293,159 @@ pub fn parse_create_table_statement(query: &str) -> Result<Statement, Box<dyn st
     }
 
     // Return the parsed statement
-    Ok(Statement::new_create_table(query.to_string(), name, columns))
+    Ok(Statement::new_create_table(
+        query.to_string(),
+        name,
+        columns,
+    ))
+}
+
+pub fn parse_create_view_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    // Compile the regex (case-insensitive)
+    let re = Regex::new(r"(?i)^\s*CREATE\s+VIEW\s+([^\s]+)\s+AS\s+(.+)$")?;
+
+    // Try to match and capture:
+    // 1 = view name, 2 = view definition
+    let caps = re
+        .captures(query)
+        .ok_or_else(|| format!("Not a valid CREATE VIEW statement: {}", query))?;
+
+    // 1) Extract & trim view name
+    let name = caps[1].trim().to_string();
+
+    // 2) Extract & trim view definition
+    let view_def = caps[2].trim();
+
+    // Parse the view definition as a statement
+    let query_stmt = Statement::new(view_def);
+
+    // Return the parsed statement
+    Ok(Statement::new_create_view(
+        query.to_string(),
+        name,
+        query_stmt,
+    ))
+}
+
+pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    // First check for WITH clause
+    let (with_clauses, remaining_query) = if query.to_uppercase().contains("WITH") {
+        let re = Regex::new(r"(?i)^\s*WITH\s+(.+?)\s+AS\s+\((.+?)\)\s+(.+)$")?;
+        if let Some(caps) = re.captures(query) {
+            let cte_name = caps[1].trim().to_string();
+            let cte_query = caps[2].trim();
+            let main_query = caps[3].trim();
+
+            // Parse the CTE query
+            let cte_stmt = parse_select_statement(cte_query)?;
+
+            // Parse the main query
+            let main_stmt = parse_select_statement(main_query)?;
+
+            // Combine them
+            if let StatementKind::Select {
+                mut columns,
+                mut tables,
+                mut conditions,
+                mut subqueries,
+                is_distinct,
+                ..
+            } = main_stmt.kind
+            {
+                let mut with_clauses = Vec::new();
+                with_clauses.push(WithClause {
+                    name: cte_name,
+                    query: Box::new(cte_stmt),
+                });
+
+                return Ok(Statement::new_select(
+                    query.to_string(),
+                    with_clauses,
+                    columns,
+                    tables,
+                    conditions,
+                    subqueries,
+                    is_distinct,
+                ));
+            }
+        }
+        (Vec::new(), query)
+    } else {
+        (Vec::new(), query)
+    };
+
+    // Parse the main SELECT statement
+    let re = Regex::new(
+        r"(?i)^\s*SELECT\s+(?:DISTINCT\s+)?(.+?)\s+FROM\s+(.+?)(?:\s+WHERE\s+(.+))?(?:\s*;)?$",
+    )?;
+
+    let caps = re
+        .captures(remaining_query)
+        .ok_or_else(|| format!("Not a valid SELECT statement: {}", remaining_query))?;
+
+    let columns_str = caps[1].trim();
+    let tables_str = caps[2].trim();
+    let where_clause = caps.get(3).map(|m| m.as_str().trim());
+
+    // Parse columns
+    let columns = columns_str
+        .split(',')
+        .map(|col| {
+            let parts: Vec<&str> = col.trim().split('.').collect();
+            if parts.len() > 1 {
+                Column {
+                    table: Some(parts[0].trim().to_string()),
+                    name: parts[1].trim().to_string(),
+                }
+            } else {
+                Column {
+                    table: None,
+                    name: parts[0].trim().to_string(),
+                }
+            }
+        })
+        .collect();
+
+    // Parse tables
+    let tables = tables_str
+        .split(',')
+        .map(|t| t.trim().to_string())
+        .collect();
+
+    // Parse conditions
+    let conditions = if let Some(where_str) = where_clause {
+        where_str
+            .split("AND")
+            .map(|cond| {
+                let parts: Vec<&str> = cond.trim().split('.').collect();
+                if parts.len() > 1 {
+                    Condition {
+                        table: parts[0].trim().to_string(),
+                        column: parts[1].trim().to_string(),
+                        value: "".to_string(), // Simplified for now
+                    }
+                } else {
+                    Condition {
+                        table: "".to_string(),
+                        column: parts[0].trim().to_string(),
+                        value: "".to_string(),
+                    }
+                }
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    Ok(Statement::new_select(
+        query.to_string(),
+        with_clauses,
+        columns,
+        tables,
+        conditions,
+        Vec::new(), // subqueries
+        query.to_uppercase().contains("DISTINCT"),
+    ))
 }
 
 #[test]
@@ -146,13 +459,16 @@ fn test_create_q3() {
     ];
 
     let parsed: Vec<Statement> = inputs
-            .iter()
-            .map(|s| parse_create_table_statement(s).expect("should parse CREATE TABLE"))
-            .collect();
+        .iter()
+        .map(|s| parse_create_table_statement(s).expect("should parse CREATE TABLE"))
+        .collect();
 
     for stmt in parsed {
         match stmt.kind {
-            StatementKind::CreateTable { ref name, ref columns } => {
+            StatementKind::CreateTable {
+                ref name,
+                ref columns,
+            } => {
                 println!("Table: {}", name);
                 for (col, ty) in columns {
                     println!("  · {}  → {}", col, ty);
@@ -183,12 +499,16 @@ fn insert_test_q3() {
     ];
 
     let parsed: Vec<Statement> = inputs
-            .iter()
-            .map(|s| parse_insert_statement(s).expect("should parse CREATE TABLE"))
-            .collect();
+        .iter()
+        .map(|s| parse_insert_statement(s).expect("should parse CREATE TABLE"))
+        .collect();
 
     for stmt in parsed {
-        if let StatementKind::Insert { ref table, ref columns_and_values } = stmt.kind {
+        if let StatementKind::Insert {
+            ref table,
+            ref columns_and_values,
+        } = stmt.kind
+        {
             println!("Table: {}", table);
             for (col, val) in columns_and_values {
                 println!("  · {} → {}", col, val);
