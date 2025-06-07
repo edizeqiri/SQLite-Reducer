@@ -46,6 +46,7 @@ RUN mkdir -p /var/run/sshd \
 
 # ---------- Create a workspace directory ----------
 RUN mkdir /workspace
+RUN mkdir /output
 
 RUN sudo apt update
 RUN sudo apt install dos2unix
@@ -69,6 +70,7 @@ EXPOSE 22
 
 # Expose the port Jupyter will run on
 EXPOSE 8888
+
 
 # Set the default command to run the start-up script
 COPY start.sh /start.sh

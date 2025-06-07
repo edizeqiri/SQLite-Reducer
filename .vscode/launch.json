@@ -10,7 +10,8 @@
                 "CARGO_TARGET_DIR": "/target",
                 "RUST_LOG": "info",
                 "TEST_CASE_LOCATION": "/output/query.sql",
-                "SQL_NUMBER": "17"
+                "SQL_NUMBER": "2",
+                "RUST_BACKTRACE": "1"
             },
 
             // 1) In cargo.args, only put the Cargo‐side flags:

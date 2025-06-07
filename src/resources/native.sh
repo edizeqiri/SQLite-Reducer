@@ -72,9 +72,22 @@ if [[ "$given_oracle" == *DIFF* ]]; then
 
   #echo "BASH $parse_old&$parse_new ENDBASH"
   # exit 0 when out_old == out_new, exit 1 otherwise
-  exit $([[ "$parse_old" != "$parse_new" ]] && echo 0 || echo 1)
+
+  if [[ "$parse_old" != "$parse_new" ]]; then
+    echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
+    exit 0
+  else
+    exit 1
+  fi
+
 fi
 
 # exit 0 when output == oracle, exit 1 otherwise
-exit $([[ "$output" == "$oracle" ]] && echo 0 || echo 1)
+if [[ "$output" == "$oracle" ]]; then
+  exit 0
+else
+  echo "QUERY $curr_query_num: $output" >> /output/query.txt
+  exit 1
+fi
+
 

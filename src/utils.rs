@@ -1,10 +1,13 @@
 use clap::Parser;
 use log::*;
 use regex::Regex;
+use std::fmt::format;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use std::time::Duration;
 use std::{env, fs, process};
 
+use crate::driver;
 use crate::parser::generate_ast;
 
 pub fn vec_statement_to_string<T>(
@@ -66,8 +69,22 @@ pub fn print_result(
         &format!("src/output/result{}.csv", query_number).into(),
     );
 
+    write_output_to_file(&reduced_query, &get_test_case_location());
+    let _ = save_final_output(query_number, &reduced_query);
+
     Ok(())
 }
+
+fn save_final_output(query_number: &str, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
+    let test_case_location = driver::TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
+
+    let binding = driver::get_output_from_query(test_case_location)?;
+    let output = from_utf8(&binding.stdout)?;
+
+    let final_output = format!("{:?}\n\n{}", &output, final_query);
+    write_output_to_file(&final_output, &format!("src/output/final_output{}.txt", query_number).into());
+     Ok(())
+ }
 
 pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf, String) {
     let query_path = pwd.join(args.query);

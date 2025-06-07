@@ -13,7 +13,7 @@ use crate::utils::vec_statement_to_string;
 
 static GLOBAL_TEST_SCRIPT_PATH: OnceCell<PathBuf> = OnceCell::new();
 static GLOBAL_EXPECTED_RESULT: OnceCell<String> = OnceCell::new();
-static TEST_CASE_LOCATION: OnceCell<PathBuf> = OnceCell::new();
+pub(crate) static TEST_CASE_LOCATION: OnceCell<PathBuf> = OnceCell::new();
 
 pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
     let test_case_location = TEST_CASE_LOCATION
@@ -59,12 +59,14 @@ pub fn init_query(
     Ok(())
 }
 
-fn get_output_from_query(query: &PathBuf) -> io::Result<Output> {
+pub(crate) fn get_output_from_query(query: &PathBuf) -> io::Result<Output> {
     let test_script_path = GLOBAL_TEST_SCRIPT_PATH
         .get()
         .expect("We are missing a GLOBAL_TEST_SCRIPT_PATH?!");
 
-    Command::new(test_script_path).arg(query).arg("").output()
+    let out = Command::new(test_script_path).arg(query).arg("").output();
+    out
+
 }
 
 fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) {
