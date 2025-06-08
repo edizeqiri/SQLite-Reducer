@@ -286,13 +286,26 @@ pub fn parse_trigger_statement(sql: &str) -> Result<Statement, Box<dyn std::erro
         let table = caps[4].to_string();
         let body = caps[5].to_string();
 
-        // Split body into individual statements, preserving the semicolon
+        // Split body into individual statements and parse each one
         let body_statements: Vec<String> = body
             .split(';')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
-            .map(|s| s + ";") // Add back the semicolon
             .collect();
+
+        // Try to parse each statement in the body
+        let mut parsed_body = Vec::new();
+        for stmt in body_statements {
+            // Try to parse as UPDATE first
+            if stmt.to_uppercase().starts_with("UPDATE") {
+                if let Ok(update_stmt) = parse_update_statement(&stmt) {
+                    parsed_body.push(update_stmt.original);
+                    continue;
+                }
+            }
+            // If not an UPDATE or parsing failed, keep original
+            parsed_body.push(stmt);
+        }
 
         Ok(Statement {
             original: sql.to_string(),
@@ -301,8 +314,72 @@ pub fn parse_trigger_statement(sql: &str) -> Result<Statement, Box<dyn std::erro
                 timing,
                 event,
                 table,
-                body: body_statements,
+                body: parsed_body,
             },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
+    }
+}
+
+pub fn parse_update_statement(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let update_regex = Regex::new(r"(?i)^\s*UPDATE\s+(\w+)")?;
+
+    if let Some(caps) = update_regex.captures(sql) {
+        let table = caps[1].to_string();
+
+        // For now, we just care about the table name, so we'll use empty values for the rest
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Update {
+                table,
+                set_clauses: Vec::new(),
+                where_clause: None,
+            },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
+    }
+}
+
+pub fn parse_delete_statement(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let delete_regex = Regex::new(r"(?i)^\s*DELETE\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+))?(?:\s*;)?$")?;
+
+    if let Some(caps) = delete_regex.captures(sql) {
+        let table = caps[1].to_string();
+        let where_clause = caps.get(2).map(|m| m.as_str().trim().to_string());
+
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Delete {
+                table,
+                where_clause,
+            },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
+    }
+}
+
+pub fn parse_alter_table_statement(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let alter_regex = Regex::new(r"(?i)^\s*ALTER\s+TABLE\s+(\w+)\s+(.+?)(?:\s*;)?$")?;
+
+    if let Some(caps) = alter_regex.captures(sql) {
+        let table = caps[1].to_string();
+        let operation = caps[2].trim().to_string();
+
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::AlterTable { table, operation },
         })
     } else {
         Ok(Statement {

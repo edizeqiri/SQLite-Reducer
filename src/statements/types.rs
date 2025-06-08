@@ -49,6 +49,19 @@ pub enum StatementKind {
         table: String,
         body: Vec<String>,
     },
+    Update {
+        table: String,
+        set_clauses: Vec<(String, String)>,
+        where_clause: Option<String>,
+    },
+    Delete {
+        table: String,
+        where_clause: Option<String>,
+    },
+    AlterTable {
+        table: String,
+        operation: String,
+    },
     Drop,
     Unknown,
 }

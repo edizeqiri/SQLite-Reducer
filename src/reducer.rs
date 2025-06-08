@@ -49,6 +49,15 @@ pub fn remove_table_in_place(table: &str, queries: Vec<Statement>) -> Vec<Statem
             ) && !matches!(
                 &stmt.kind,
                 StatementKind::CreateView { name, .. } if name == table
+            ) && !matches!(
+                &stmt.kind,
+                StatementKind::Update { table: tbl, .. } if tbl == table
+            ) && !matches!(
+                &stmt.kind,
+                StatementKind::Delete { table: tbl, .. } if tbl == table
+            ) && !matches!(
+                &stmt.kind,
+                StatementKind::AlterTable { table: tbl, .. } if tbl == table
             )
         })
         .collect();
@@ -112,10 +121,10 @@ fn test_remove() {
     let ast = generate_ast(query).unwrap();
     let cleaned = remove_table_in_place("table_1", ast);
 
-    print!("{:#?}", cleaned);
-    println!("{:#?}", vec_statement_to_string(&cleaned, ";"));
+    println!("{:#?}", cleaned);
+    println!("{:#?}", vec_statement_to_string(&cleaned, ";").unwrap());
 
-    assert_eq!(13, cleaned.len())
+    assert_eq!(10, cleaned.len())
 }
 
 #[test]
