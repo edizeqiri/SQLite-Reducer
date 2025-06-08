@@ -8,18 +8,20 @@ use crate::delta_debug_stmt::delta_debug_stmt;
 pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let current_ast_length = current_ast.len();
 
-    let minimal_stmt = delta_debug(current_ast, 2)?;
+    let mut reduced = delta_debug(current_ast, 2)?;
 
-    let transformed = remove_table(&minimal_stmt)?;
+    
+
+    reduced = remove_table(&minimal_stmt)?;
 
 
     info!(
         "original query length: {:?}, reduced query length: {:?}",
         current_ast_length,
-        transformed.len()
+        reduced.len()
     );
 
-    Ok(transformed)
+    Ok(reduced)
 }
 
 fn remove_table(
