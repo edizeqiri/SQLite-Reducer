@@ -82,6 +82,8 @@ fn test_remove_query2() {
     println!("{:#?}", vec_statement_to_string(&cleaned, ";"));
 
     assert_eq!(2, cleaned.len())
+    
+    
 }
 
 #[test]
