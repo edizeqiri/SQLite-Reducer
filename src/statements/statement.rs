@@ -29,23 +29,75 @@ impl Statement {
                 subqueries,
                 ..
             } => {
+                // Remove table from tables list
                 tables.retain(|t| t != table);
+                
+                // Remove columns referencing the table
                 columns.retain(|col| col.table.as_ref() != Some(&table.to_string()));
+                
+                // Remove conditions referencing the table
                 conditions.retain(|cond| cond.table != table);
 
+                // Process WITH clauses
                 for with_clause in with_clauses {
                     with_clause.query.remove_table_references(table);
                 }
 
-                for subquery in subqueries {
+                // Process subqueries
+                subqueries.retain_mut(|subquery| {
                     subquery.remove_table_references(table);
-                }
+                    !subquery.get_tables().is_empty()
+                });
 
+                // Update the original SQL query
+                let mut updated_query = self.original.clone();
+                
+                // Remove table from FROM clause
                 let from_pattern = format!(r",\s*{}\b|\b{}\s*,", table, table);
-                self.original = Regex::new(&from_pattern)
+                updated_query = Regex::new(&from_pattern)
                     .unwrap()
-                    .replace_all(&self.original, "")
+                    .replace_all(&updated_query, "")
                     .to_string();
+                
+                // Remove table references from WHERE clause
+                let where_pattern = format!(r"{}\.\w+", table);
+                updated_query = Regex::new(&where_pattern)
+                    .unwrap()
+                    .replace_all(&updated_query, "")
+                    .to_string();
+                
+                // Remove table references from GROUP BY clause
+                let group_by_pattern = format!(r",\s*{}\.\w+|\b{}\.\w+\s*,", table, table);
+                updated_query = Regex::new(&group_by_pattern)
+                    .unwrap()
+                    .replace_all(&updated_query, "")
+                    .to_string();
+                
+                // Remove table references from HAVING clause
+                let having_pattern = format!(r"{}\.\w+", table);
+                updated_query = Regex::new(&having_pattern)
+                    .unwrap()
+                    .replace_all(&updated_query, "")
+                    .to_string();
+                
+                // Remove table references from ORDER BY clause
+                let order_by_pattern = format!(r",\s*{}\.\w+|\b{}\.\w+\s*,", table, table);
+                updated_query = Regex::new(&order_by_pattern)
+                    .unwrap()
+                    .replace_all(&updated_query, "")
+                    .to_string();
+
+                // Clean up any double commas or spaces
+                updated_query = Regex::new(r",\s*,")
+                    .unwrap()
+                    .replace_all(&updated_query, ",")
+                    .to_string();
+                updated_query = Regex::new(r"\s+")
+                    .unwrap()
+                    .replace_all(&updated_query, " ")
+                    .to_string();
+
+                self.original = updated_query;
             }
             StatementKind::CreateView { name, query } => {
                 query.remove_table_references(table);

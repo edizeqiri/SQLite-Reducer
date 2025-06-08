@@ -76,12 +76,13 @@ fn test_remove_query2() {
     SELECT EXISTS (SELECT 1 FROM t_DX44 LIMIT 1) AS alias_xvE FROM t_DX44 WHERE NOT (t_DX44.c_EwP / t_DX44.c_ewZ) GROUP BY c_ewZ, c_Hlmf3w, c_LGUf HAVING CASE WHEN REPLACE(t_DX44.c_YBA7sBV, '7ZjVE', -109744) THEN t_DX44.c_LGUf ELSE TRUE END ORDER BY c_LGUf DESC, c_YBA7sBV;";
 
     let ast = generate_ast(query).unwrap();
+    println!("{:#?}", ast);
     let cleaned = remove_table_in_place("t_DX44", ast);
 
     print!("{:#?}", cleaned);
     println!("{:#?}", vec_statement_to_string(&cleaned, ";"));
 
-    assert_eq!(2, cleaned.len())
+    assert_eq!(1, cleaned.len())
     
     
 }
