@@ -3,77 +3,8 @@ use crate::reducer::remove_tables_in_place;
 use crate::statements::types::Statement;
 use crate::utils::vec_statement_to_string;
 use log::*;
+use std::collections::HashSet;
 use std::error::Error;
-
-/// Perform delta debugging on a vector of items of arbitrary type T.
-/// IN THIS FILE: only statements are reduced
-/// We want to find the list of tables (here data) that can be removed (=> Return nabla of table)
-pub fn delta_debug_stmt<T>(mut data: Vec<T>, mut granularity: usize, query: &Vec<Statement>) -> Result<Vec<T>, Box<dyn Error>>
-where
-    T: Clone + AsRef<str> + PartialEq + std::fmt::Display,
-{
-    if data.len()== 1 && granularity > 1 { granularity = 1 }
-    while granularity > 0 && granularity <= data.len() {
-        let tests = split_tests(&data, granularity);
-        let mut reduced = false;
-
-        for delta in &tests {
-            let nabla = get_nabla(&data, delta);
-
-            // remove the chosen table and its opposite
-            let tmp_delta = remove_tables_in_place(&delta, query.to_vec());
-            let tmp_nabla = remove_tables_in_place(&nabla, query.to_vec());
-
-            let input_delta = vec_statement_to_string(&tmp_delta, ";")?;
-            let input_nabla = vec_statement_to_string(&tmp_nabla, ";")?;
-
-            info!("delta: {}", delta.len());
-            info!("nabla: {}", nabla.len());
-
-            // use `?` to propagate any I/O/test errors
-            if test_query(&input_delta)? {
-                data = delta.clone();
-                reduced = true;
-                break;
-            } else if test_query(&input_nabla)? {
-                data = nabla;
-                granularity = granularity.saturating_mul(2);
-                reduced = true;
-                break;
-            }
-        }
-
-        if !reduced {
-            granularity = granularity.saturating_sub(1);
-        }
-    }
-
-    let minimal_statement = find_one_minimal(&data);
-
-    minimal_statement
-}
-
-
-
-/// Recursively remove one element at a time.
-fn find_one_minimal<T>(test: &[T]) -> Result<Vec<T>, Box<dyn Error>>
-where
-    T: Clone + ToString + PartialEq,
-{
-    let current = test.to_vec();
-    for i in 0..current.len() {
-        let mut truncated = current.clone();
-        truncated.remove(i);
-
-        let input = vec_statement_to_string(&truncated, ";");
-        if test_query(&input?)? {
-            return find_one_minimal(&truncated);
-        }
-    }
-
-    info!("{:?}", vec_statement_to_string(&current, ";"));
-    Ok(current)
-}
 
 /// Split `tests` into `n` parts as evenly as possible.
 fn split_tests<T: Clone>(tests: &[T], n: usize) -> Vec<Vec<T>> {
@@ -91,6 +22,83 @@ fn split_tests<T: Clone>(tests: &[T], n: usize) -> Vec<Vec<T>> {
 
     parts
 }
+
+/// Returns the elements in `haystack` that are *not* in `needles`.
+fn difference<T: Eq + std::hash::Hash + Clone>(haystack: &[T], needles: &[T]) -> Vec<T> {
+    let forbidden: HashSet<_> = needles.iter().cloned().collect();
+    haystack
+        .iter()
+        .filter(|item| !forbidden.contains(*item))
+        .cloned()
+        .collect()
+}
+
+/// Perform "delta-inclusion" debugging on a vector of items of arbitrary type T.
+/// Finds a (greedy) maximal subset of `data` for which `test_query` still succeeds.
+pub fn delta_debug_stmt<T>(
+    data: Vec<T>,
+    mut granularity: usize,
+    query: &Vec<Statement>,
+) -> Result<Vec<T>, Box<dyn Error>>
+where
+    T: Clone + AsRef<str> + PartialEq + std::fmt::Display + Eq + std::hash::Hash,
+{
+    let mut base: Vec<T> = Vec::new();
+    let mut remaining = data;
+
+    while !remaining.is_empty() && granularity <= remaining.len() {
+        let tests = split_tests(&remaining, granularity);
+        let mut progressed = false;
+
+        for chunk in &tests {
+            // Try including the chunk
+            let mut trial = base.clone();
+            trial.extend(chunk.iter().cloned());
+            let tmp = remove_tables_in_place(&trial, query);
+            let input = vec_statement_to_string(&tmp, ";")?;
+
+            if test_query(&input)? {
+                base = trial;
+                remaining = difference(&remaining, chunk);
+                granularity = granularity.saturating_mul(2);
+                progressed = true;
+                break;
+            }
+
+            // Try keeping everything except this chunk
+            let complement = difference(&remaining, chunk);
+            let mut trial2 = base.clone();
+            trial2.extend(complement.iter().cloned());
+            let tmp2 = remove_tables_in_place(&trial2, query);
+            let input2 = vec_statement_to_string(&tmp2, ";")?;
+
+            if test_query(&input2)? {
+                remaining = complement;
+                granularity = granularity.saturating_mul(2);
+                progressed = true;
+                break;
+            }
+        }
+
+        if !progressed {
+            granularity = granularity.saturating_add(1);
+        }
+    }
+
+    // Final: try to add remaining elements one-by-one
+    for e in remaining {
+        let mut trial = base.clone();
+        trial.push(e.clone());
+        let tmp = remove_tables_in_place(&trial, query);
+        let input = vec_statement_to_string(&tmp, ";")?;
+        if test_query(&input)? {
+            base.push(e);
+        }
+    }
+
+    Ok(base)
+}
+
 
 /// Returns all items in `data` that are *not* in `delta`.
 fn get_nabla<T: Clone + PartialEq>(data: &[T], delta: &[T]) -> Vec<T> {
@@ -114,3 +122,4 @@ fn test_get_nabla() {
     let nabla = get_nabla(&data, &delta);
     assert_eq!(nabla, vec![10]);
 }
+

@@ -16,15 +16,15 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std
     info!(
         "original query length: {:?}, reduced query length: {:?}",
         current_ast_length,
-        minimal_stmt.len()
+        transformed.len()
     );
 
-    Ok(minimal_stmt)
+    Ok(transformed)
 }
 
 fn remove_table(
     queries: &Vec<Statement>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let table_names: Vec<&String> = queries
         .iter()
         .filter_map(|stmt| stmt.get_create_table_name())
@@ -33,9 +33,10 @@ fn remove_table(
     // TODO: delta debug on table_names
     // delta debug needs to remove table and then check if removal was successful
     // if not keep the table name-
-    let _ = delta_debug_stmt(table_names, 2, queries);
+    let all_tables = delta_debug_stmt(table_names, 2, queries);
+    info!("removed these tables: {:?}", all_tables);
 
-    Ok(())
+    Ok(remove_tables_in_place(&all_tables?, queries))
 }
 
 pub fn remove_table_in_place(table: &str, mut queries: Vec<Statement>) -> Vec<Statement> {
@@ -61,8 +62,8 @@ pub fn remove_table_in_place(table: &str, mut queries: Vec<Statement>) -> Vec<St
     queries
 }
 
-pub fn remove_tables_in_place<T: AsRef<str>>(tables: &[T], queries: Vec<Statement>) -> Vec<Statement> {
-    tables.iter().fold(queries, |current_queries, table| {
+pub fn remove_tables_in_place<T: AsRef<str>>(tables: &[T], queries: &Vec<Statement>) -> Vec<Statement> {
+    tables.iter().fold(queries.clone(), |current_queries, table| {
         // table.as_ref() gives you &str, so it works with your existing fn
         remove_table_in_place(table.as_ref(), current_queries)
     })
