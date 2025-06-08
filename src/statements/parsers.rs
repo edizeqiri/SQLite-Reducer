@@ -86,10 +86,7 @@ pub fn parse_create_table(sql: &str) -> Result<Statement, Box<dyn std::error::Er
             kind: StatementKind::CreateTable { name, columns },
         })
     } else {
-        Ok(Statement {
-            original: sql.to_string(),
-            kind: StatementKind::Unknown,
-        })
+        Err("Not a CREATE TABLE statement".into())
     }
 }
 

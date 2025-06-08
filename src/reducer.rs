@@ -12,7 +12,7 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std
 
 
 
-    reduced = remove_table(&minimal_stmt)?;
+    reduced = remove_table(&reduced)?;
 
 
     info!(
