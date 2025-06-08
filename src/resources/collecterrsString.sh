@@ -17,7 +17,7 @@ for i in {1..20}; do
       --test src/resources/native.sh \
     2>&1 | tee /output/logs/job_${i}.log
   ) &
-  echo "Running query $i"
+
 done
 
 wait
