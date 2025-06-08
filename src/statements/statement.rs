@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::fmt;
 
-use crate::statements::types::{Statement, StatementKind, Column};
+use crate::statements::types::{Column, Statement, StatementKind};
 
 impl Statement {
     pub fn new(original: &str) -> Self {
@@ -152,12 +152,49 @@ impl Statement {
                 // Join all parts with spaces
                 self.original = parts.join(" ");
             }
+            StatementKind::Trigger {
+                name,
+                timing,
+                event,
+                table: trigger_table,
+                body,
+            } => {
+                // If trigger is on the table we're removing, remove the entire trigger
+                if trigger_table == table {
+                    self.kind = StatementKind::Unknown;
+                    self.original = "".to_string();
+                    return;
+                }
+
+                // If any statement in the trigger body references the table, remove the trigger
+                if body.iter().any(|stmt| stmt.contains(table)) {
+                    self.kind = StatementKind::Unknown;
+                    self.original = "".to_string();
+                    return;
+                }
+                // Otherwise, keep the trigger unchanged
+            }
             StatementKind::CreateView { name, query } => {
                 query.remove_table_references(table);
                 self.original = format!("CREATE VIEW {} AS {}", name, query.original);
             }
             StatementKind::Unknown => {
-                if self.original.to_uppercase().contains("SELECT") {
+                // Handle trigger statements
+                if self.original.to_uppercase().contains("CREATE TRIGGER") {
+                    if let Ok(mut trigger_stmt) =
+                        crate::statements::parsers::parse_trigger_statement(&self.original)
+                    {
+                        trigger_stmt.remove_table_references(table);
+                        if !trigger_stmt.original.is_empty() {
+                            self.kind = trigger_stmt.kind;
+                            self.original = trigger_stmt.original;
+                        } else {
+                            self.original = "".to_string();
+                        }
+                    }
+                }
+                // Handle SELECT statements
+                else if self.original.to_uppercase().contains("SELECT") {
                     if let Ok(mut select_stmt) =
                         crate::statements::parsers::parse_select_statement(&self.original)
                     {

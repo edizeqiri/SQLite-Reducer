@@ -23,11 +23,12 @@ pub struct WithClause {
 pub enum StatementKind {
     CreateTable {
         name: String,
-        columns: HashMap<String, String>,
+        columns: Vec<Column>,
     },
     Insert {
         table: String,
-        columns_and_values: HashMap<String, String>,
+        columns: Vec<String>,
+        values: Vec<Vec<String>>,
     },
     Select {
         with_clauses: Vec<WithClause>,
@@ -40,6 +41,13 @@ pub enum StatementKind {
     CreateView {
         name: String,
         query: Box<Statement>,
+    },
+    Trigger {
+        name: String,
+        timing: String,
+        event: String,
+        table: String,
+        body: Vec<String>,
     },
     Drop,
     Unknown,

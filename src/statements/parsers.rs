@@ -3,95 +3,94 @@ use std::collections::HashMap;
 
 use crate::statements::types::{Column, Condition, Statement, StatementKind, WithClause};
 
-pub fn parse_insert_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
-    // First, extract the table name and column list
-    let table_re = Regex::new(
-        r"(?i)^\s*INSERT(?:\s+OR\s+(?:REPLACE|IGNORE|FAIL))?\s+INTO\s+([^(]+)\s*\(\s*([^)]*)\s*\)",
+pub fn parse_insert_statement(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let insert_regex = Regex::new(
+        r"(?i)INSERT\s+(?:OR\s+(?:FAIL|IGNORE|REPLACE)\s+)?INTO\s+(\w+)\s*(?:\((.*?)\))?\s*VALUES\s*(.*)",
     )?;
 
-    let caps = table_re
-        .captures(query)
-        .ok_or_else(|| format!("Not a valid INSERT statement: {}", query))?;
+    if let Some(caps) = insert_regex.captures(sql) {
+        let table = caps[1].to_string();
+        let columns_str = caps.get(2).map_or("", |m| m.as_str());
+        let values_str = caps[3].to_string();
 
-    let table = caps[1].trim().to_string();
-    let col_names: Vec<String> = caps[2]
-        .trim()
-        .split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .collect();
-
-    // Now extract all VALUES clauses
-    let values_re = Regex::new(r"(?i)VALUES\s*\(\s*([^)]*)\s*\)(?:\s*,\s*\(\s*([^)]*)\s*\))*")?;
-    let values_caps = values_re
-        .captures(query)
-        .ok_or_else(|| format!("No VALUES clause found in INSERT statement: {}", query))?;
-
-    // Get all value groups
-    let mut all_values = Vec::new();
-    for i in 1..values_caps.len() {
-        if let Some(values_str) = values_caps.get(i) {
-            let values: Vec<String> = values_str
-                .as_str()
+        // Parse columns
+        let columns: Vec<String> = if !columns_str.is_empty() {
+            columns_str
                 .split(',')
-                .map(str::trim)
-                .map(str::to_string)
-                .collect();
-            if !values.is_empty() {
-                all_values.push(values);
-            }
-        }
-    }
+                .map(|s| s.trim().to_string())
+                .collect()
+        } else {
+            Vec::new()
+        };
 
-    // Create a HashMap with the first row of values
-    let mut columns_and_values = HashMap::new();
-    if !all_values.is_empty() {
-        for (name, value) in col_names.iter().zip(all_values[0].iter()) {
-            columns_and_values.insert(name.clone(), value.clone());
-        }
-    }
+        // Parse values
+        let values: Vec<Vec<String>> = values_str
+            .split("),")
+            .map(|value_group| {
+                value_group
+                    .trim_start_matches("(")
+                    .trim_end_matches(")")
+                    .trim()
+                    .split(",")
+                    .map(|v| v.trim().to_string())
+                    .collect()
+            })
+            .collect();
 
-    Ok(Statement {
-        original: query.to_string(),
-        kind: StatementKind::Insert {
-            table,
-            columns_and_values,
-        },
-    })
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Insert {
+                table,
+                columns,
+                values,
+            },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
+    }
 }
 
-pub fn parse_create_table_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
-    let re = Regex::new(
-        r"(?i)^\s*CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([^(]+)\s*\(\s*([^)]*)\s*\)",
-    )?;
+pub fn parse_create_table(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let create_table_regex =
+        Regex::new(r"(?i)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\((.*?)\)")?;
 
-    let caps = re
-        .captures(query)
-        .ok_or_else(|| format!("Not a valid CREATE TABLE statement: {}", query))?;
+    if let Some(caps) = create_table_regex.captures(sql) {
+        let name = caps[1].to_string();
+        let columns_str = caps[2].to_string();
 
-    let name = caps[1].trim().to_string();
-    let cols_block = caps[2].trim();
+        // Parse columns
+        let columns: Vec<Column> = columns_str
+            .split(',')
+            .filter(|s| !s.trim().is_empty())
+            .map(|col_str| {
+                let parts: Vec<&str> = col_str.trim().split_whitespace().collect();
+                if parts.len() >= 2 {
+                    Column {
+                        table: None,
+                        name: parts[0].to_string(),
+                    }
+                } else {
+                    Column {
+                        table: None,
+                        name: col_str.trim().to_string(),
+                    }
+                }
+            })
+            .collect();
 
-    let mut columns = HashMap::new();
-    for part in cols_block.split(',') {
-        let def = part.trim();
-        if def.is_empty() {
-            continue;
-        }
-        if let Some(idx) = def.find(char::is_whitespace) {
-            let col = def[..idx].to_string();
-            let ty = def[idx..].trim().to_string();
-            columns.insert(col, ty);
-        } else {
-            columns.insert(def.to_string(), String::new());
-        }
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::CreateTable { name, columns },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
     }
-
-    Ok(Statement {
-        original: query.to_string(),
-        kind: StatementKind::CreateTable { name, columns },
-    })
 }
 
 pub fn parse_create_view_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
@@ -273,4 +272,42 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
             is_distinct: query.to_uppercase().contains("DISTINCT"),
         },
     })
+}
+
+pub fn parse_trigger_statement(sql: &str) -> Result<Statement, Box<dyn std::error::Error>> {
+    let trigger_regex = Regex::new(
+        r"(?i)CREATE\s+TRIGGER\s+(\w+)\s+(BEFORE|AFTER|INSTEAD\s+OF)\s+(INSERT|UPDATE|DELETE)\s+ON\s+(\w+)\s+BEGIN\s+(.*?)(?:END|$)",
+    )?;
+
+    if let Some(caps) = trigger_regex.captures(sql) {
+        let name = caps[1].to_string();
+        let timing = caps[2].to_string();
+        let event = caps[3].to_string();
+        let table = caps[4].to_string();
+        let body = caps[5].to_string();
+
+        // Split body into individual statements, preserving the semicolon
+        let body_statements: Vec<String> = body
+            .split(';')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .map(|s| s + ";") // Add back the semicolon
+            .collect();
+
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Trigger {
+                name,
+                timing,
+                event,
+                table,
+                body: body_statements,
+            },
+        })
+    } else {
+        Ok(Statement {
+            original: sql.to_string(),
+            kind: StatementKind::Unknown,
+        })
+    }
 }

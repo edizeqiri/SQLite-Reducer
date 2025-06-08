@@ -18,10 +18,11 @@ pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Err
         }
 
         // Try each parser in sequence
-        let stmt = parsers::parse_create_table_statement(&raw)
+        let stmt = parsers::parse_create_table(&raw)
             .or_else(|_| parsers::parse_insert_statement(&raw))
             .or_else(|_| parsers::parse_create_view_statement(&raw))
             .or_else(|_| parsers::parse_select_statement(&raw))
+            .or_else(|_| parsers::parse_trigger_statement(&raw))
             .unwrap_or_else(|_| Statement::new(&raw));
 
         parsed_queries.push(stmt);
