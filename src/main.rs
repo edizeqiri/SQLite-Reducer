@@ -6,6 +6,7 @@ pub mod statements;
 mod transformation;
 mod utils;
 pub mod delta_debug_stmt;
+pub mod bruteforce_debug;
 
 use crate::delta_debug::delta_debug;
 use crate::utils::vec_statement_to_string;
@@ -32,13 +33,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reduced = reduce(parsed_query)?;
     info!("query reduced with params {:?}", reduced.len());
 
-    info!("{:?}", vec_statement_to_string(&reduced, "\n"));
+    info!("{:?}", reduced);
 
     info!("writing results to file");
     utils::print_result(
         &query_path,
         &query,
-        &vec_statement_to_string(&reduced, ";")?,
+        &reduced,
         start.elapsed(),
     )
     .expect("TODO: panic message");

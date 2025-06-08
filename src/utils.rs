@@ -82,7 +82,7 @@ fn save_final_output(query_number: &str, final_query: &String) -> Result<(), Box
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("src/output/final_output{}.txt", query_number).into());
+    write_output_to_file(&final_output, &format!("src/output/final_output{}.sql", query_number).into());
      Ok(())
  }
 

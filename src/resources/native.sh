@@ -75,12 +75,12 @@ if [[ "$given_oracle" == *DIFF* ]]; then
 
   if [[ "$parse_old"  == *"near line"* && \
       "$parse_new" == *"near line"* ]]; then
-  echo "Both old and new contain 'near line', aborting."
+  #echo "Both old and new contain 'near line', aborting."
   exit 1
   fi
 
   if [[ "$parse_old" != "$parse_new" ]]; then
-    echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
+    #echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
     exit 0
   else
     exit 1
