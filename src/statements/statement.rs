@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::fmt;
 
-use crate::statements::types::{Statement, StatementKind};
+use crate::statements::types::{Statement, StatementKind, Column};
 
 impl Statement {
     pub fn new(original: &str) -> Self {
@@ -27,19 +27,53 @@ impl Statement {
                 tables,
                 conditions,
                 subqueries,
-                ..
+                is_distinct,
             } => {
+                // If this is the only table in the FROM clause, replace the entire SELECT with SELECT 1
+                if tables.len() == 1 && tables[0] == table {
+                    self.kind = StatementKind::Select {
+                        with_clauses: Vec::new(),
+                        columns: vec![Column {
+                            table: None,
+                            name: "1".to_string(),
+                        }],
+                        tables: Vec::new(),
+                        conditions: Vec::new(),
+                        subqueries: Vec::new(),
+                        is_distinct: false,
+                    };
+                    self.original = "SELECT 1".to_string();
+                    return;
+                }
+
                 // Remove table from tables list
                 tables.retain(|t| t != table);
-                
+
+                // If no tables remain, replace with SELECT 1
+                if tables.is_empty() {
+                    self.kind = StatementKind::Select {
+                        with_clauses: Vec::new(),
+                        columns: vec![Column {
+                            table: None,
+                            name: "1".to_string(),
+                        }],
+                        tables: Vec::new(),
+                        conditions: Vec::new(),
+                        subqueries: Vec::new(),
+                        is_distinct: false,
+                    };
+                    self.original = "SELECT 1".to_string();
+                    return;
+                }
+
                 // Remove columns referencing the table
                 columns.retain(|col| col.table.as_ref() != Some(&table.to_string()));
-                
+
                 // Remove conditions referencing the table
                 conditions.retain(|cond| cond.table != table);
 
                 // Process WITH clauses
-                for with_clause in with_clauses {
+                for with_clause in with_clauses.iter_mut() {
                     with_clause.query.remove_table_references(table);
                 }
 
@@ -49,55 +83,74 @@ impl Statement {
                     !subquery.get_tables().is_empty()
                 });
 
-                // Update the original SQL query
-                let mut updated_query = self.original.clone();
-                
-                // Remove table from FROM clause
-                let from_pattern = format!(r",\s*{}\b|\b{}\s*,", table, table);
-                updated_query = Regex::new(&from_pattern)
-                    .unwrap()
-                    .replace_all(&updated_query, "")
-                    .to_string();
-                
-                // Remove table references from WHERE clause
-                let where_pattern = format!(r"{}\.\w+", table);
-                updated_query = Regex::new(&where_pattern)
-                    .unwrap()
-                    .replace_all(&updated_query, "")
-                    .to_string();
-                
-                // Remove table references from GROUP BY clause
-                let group_by_pattern = format!(r",\s*{}\.\w+|\b{}\.\w+\s*,", table, table);
-                updated_query = Regex::new(&group_by_pattern)
-                    .unwrap()
-                    .replace_all(&updated_query, "")
-                    .to_string();
-                
-                // Remove table references from HAVING clause
-                let having_pattern = format!(r"{}\.\w+", table);
-                updated_query = Regex::new(&having_pattern)
-                    .unwrap()
-                    .replace_all(&updated_query, "")
-                    .to_string();
-                
-                // Remove table references from ORDER BY clause
-                let order_by_pattern = format!(r",\s*{}\.\w+|\b{}\.\w+\s*,", table, table);
-                updated_query = Regex::new(&order_by_pattern)
-                    .unwrap()
-                    .replace_all(&updated_query, "")
-                    .to_string();
+                // Reconstruct the SQL query
+                let mut parts = Vec::new();
 
-                // Clean up any double commas or spaces
-                updated_query = Regex::new(r",\s*,")
-                    .unwrap()
-                    .replace_all(&updated_query, ",")
-                    .to_string();
-                updated_query = Regex::new(r"\s+")
-                    .unwrap()
-                    .replace_all(&updated_query, " ")
-                    .to_string();
+                // Add WITH clauses if any
+                if !with_clauses.is_empty() {
+                    let with_parts: Vec<String> = with_clauses
+                        .iter()
+                        .map(|wc| format!("{} AS ({})", wc.name, wc.query.original))
+                        .collect();
+                    parts.push(format!("WITH {}", with_parts.join(", ")));
+                }
 
-                self.original = updated_query;
+                // Add SELECT part
+                let distinct_str = if *is_distinct { "DISTINCT " } else { "" };
+                let columns_str = columns
+                    .iter()
+                    .map(|col| {
+                        if let Some(tbl) = &col.table {
+                            format!("{}.{}", tbl, col.name)
+                        } else {
+                            col.name.clone()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                parts.push(format!("SELECT {}{}", distinct_str, columns_str));
+
+                // Add FROM part
+                if !tables.is_empty() {
+                    parts.push(format!("FROM {}", tables.join(", ")));
+                }
+
+                // Add WHERE part
+                if !conditions.is_empty() {
+                    let where_conditions: Vec<String> =
+                        conditions.iter().map(|cond| cond.column.clone()).collect();
+                    parts.push(format!("WHERE {}", where_conditions.join(" AND ")));
+                }
+
+                // Add GROUP BY part if any columns remain
+                let group_by_cols: Vec<String> = columns
+                    .iter()
+                    .filter(|col| col.table.as_ref() != Some(&table.to_string()))
+                    .map(|col| col.name.clone())
+                    .collect();
+                if !group_by_cols.is_empty() {
+                    parts.push(format!("GROUP BY {}", group_by_cols.join(", ")));
+                }
+
+                // Add HAVING part if any conditions remain
+                if !conditions.is_empty() {
+                    let having_conditions: Vec<String> =
+                        conditions.iter().map(|cond| cond.column.clone()).collect();
+                    parts.push(format!("HAVING {}", having_conditions.join(" AND ")));
+                }
+
+                // Add ORDER BY part if any columns remain
+                let order_by_cols: Vec<String> = columns
+                    .iter()
+                    .filter(|col| col.table.as_ref() != Some(&table.to_string()))
+                    .map(|col| col.name.clone())
+                    .collect();
+                if !order_by_cols.is_empty() {
+                    parts.push(format!("ORDER BY {}", order_by_cols.join(", ")));
+                }
+
+                // Join all parts with spaces
+                self.original = parts.join(" ");
             }
             StatementKind::CreateView { name, query } => {
                 query.remove_table_references(table);
