@@ -17,7 +17,7 @@ COPY --from=builder /usr/src/app/target/release/reducer /usr/bin/reducer
 # Copy the queries and the test script
 COPY queries queries
 COPY src/resources/native.sh native.sh
-COPY src/resources/collecterrsString.sh collecterrsString.sh
+COPY src/resources/full_run.sh full_run.sh
 RUN mkdir -p /output
 RUN mkdir -p /output/logs
 ENV SQL_NUMBER=1
