@@ -46,7 +46,7 @@ out_new=$(run_sqlite "$db_path_new")
 output="${out_old}&${out_new}"
 #echo $output
 
-if [ "$oracle" = "" ]; then
+if [[ "$oracle" == "" ]]; then
   echo "$output"
   #echo "$output;" >> /Users/saschatran/Desktop/Uni_gits/reducer/src/resources/test.csv
   exit 0
@@ -71,10 +71,16 @@ if [[ "$given_oracle" == *DIFF* ]]; then
   parse_new=${parse_new#Runtime error[[:space:]]}
 
   #echo "BASH $parse_old&$parse_new ENDBASH"
-  # exit 0 when out_old == out_new, exit 1 otherwise
+  # exit 1 when out_old == out_new, exit 0 otherwise
+
+  if [[ "$parse_old"  == *"near line"* && \
+      "$parse_new" == *"near line"* ]]; then
+  #echo "Both old and new contain 'near line', aborting."
+  exit 1
+  fi
 
   if [[ "$parse_old" != "$parse_new" ]]; then
-    echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
+    #echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
     exit 0
   else
     exit 1

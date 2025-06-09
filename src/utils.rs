@@ -30,6 +30,7 @@ pub fn get_test_case_location() -> PathBuf {
         .map(PathBuf::from) // converts the String into a PathBuf
         .unwrap_or_else(|_| env::current_dir().unwrap().join("query.sql"));
     info!("Path to final query: {:?}", path);
+    env::set_var("TEST_CASE_LOCATION", &path);
     path
 }
 
@@ -41,7 +42,7 @@ pub fn print_result(
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let reduced_query = reduced;
-
+    let query_num = env::var("SQL_NUMBER").unwrap_or_else(|_| "0".to_string());
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
 
     // if it doesn’t already end in a semicolon (ignoring trailing whitespace), bump it by one
@@ -49,40 +50,50 @@ pub fn print_result(
         orig_num_stmt += 1;
     }
 
-    let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
+    // 1. collapse ";;;" → ";"
+    let normalized = {
+        // using a simple regex replace requires `regex = "1.5"` in Cargo.toml
+        let re = regex::Regex::new(r";+").unwrap();
+        re.replace_all(&reduced_query, ";")
+    };
 
-    let orig_num_token = orig_query.split_whitespace().count();
-    let reduced_num_token = reduced_query.split_whitespace().count();
+    // 2b. split on ';' and ignore empty pieces to get the same count
+    let num_statements_alt = normalized
+        .split(';')
+        .filter(|piece| !piece.trim().is_empty())
+        .count();
 
+    let word_re = regex::Regex::new(r"\b\w+\b").unwrap();
+
+    let orig_num_token = word_re.find_iter(orig_query).count();
+    let reduced_num_token = word_re.find_iter(&reduced_query).count();
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
-
-    let (_, query_number) = query_path.rsplit('/').nth(1).unwrap().split_at(5);
 
     let output = format!(
         "{},{},{},{},{}",
-        orig_num_stmt, reduced_num_stmt, orig_num_token, reduced_num_token, time_taken
+        orig_num_stmt, num_statements_alt, orig_num_token, reduced_num_token, time_taken
     );
-
-    warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
+    warn!("{}", output);
+    warn!("[ANALYSIS] {:?} [END ANALYSIS]", &normalized);
     write_output_to_file(
         &output,
-        &format!("src/output/result{}.csv", query_number).into(),
+        &format!("/output/result{}.csv", query_num).into(),
     );
 
-    write_output_to_file(&reduced_query, &get_test_case_location());
-    let _ = save_final_output(query_number, &reduced_query);
+    write_output_to_file(&normalized.to_string(), &get_test_case_location());
+    let _ = save_final_output(&query_num, &normalized.to_string());
 
     Ok(())
 }
 
-fn save_final_output(query_number: &str, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
+fn save_final_output(query_num: &String, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
     let test_case_location = driver::TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     let binding = driver::get_output_from_query(test_case_location)?;
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("src/output/final_output{}.txt", query_number).into());
+    write_output_to_file(&final_output, &format!("/output/final_output{}.sql", query_num).into());
      Ok(())
  }
 

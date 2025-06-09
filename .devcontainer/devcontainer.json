@@ -20,7 +20,15 @@
     "ms-toolsai.vscode-jupyter-cell-tags",
     "ms-toolsai.vscode-jupyter-slideshow",
     "ms-vscode-remote.remote-containers",
-    "rust-lang.rust-analyzer"
+    "rust-lang.rust-analyzer",
+	"vadimcn.vscode-lldb",
+	"dustypomerleau.rust-syntax",
+	"polymeilex.rust-targets",
+	"1yib.rust-bundle",
+	"jscearcy.rust-doc-viewer",
+	"fill-labs.dependi",
+	"llvm-vs-code-extensions.lldb-dap",
+	""
     ]
 		}
 	}

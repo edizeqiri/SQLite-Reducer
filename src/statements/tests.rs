@@ -1,5 +1,7 @@
-use crate::statements::parsers::{parse_create_table_statement, parse_insert_statement};
-use crate::statements::types::StatementKind;
+use crate::statements::parsers::{
+    parse_create_table, parse_insert_statement, parse_select_statement,
+};
+use crate::statements::types::{Column, StatementKind};
 
 #[test]
 fn test_create_q3() {
@@ -13,7 +15,7 @@ fn test_create_q3() {
 
     let parsed: Vec<_> = inputs
         .iter()
-        .map(|s| parse_create_table_statement(s).expect("should parse CREATE TABLE"))
+        .map(|s| parse_create_table(s).expect("should parse CREATE TABLE"))
         .collect();
 
     for stmt in parsed {
@@ -23,8 +25,8 @@ fn test_create_q3() {
                 ref columns,
             } => {
                 println!("Table: {}", name);
-                for (col, ty) in columns {
-                    println!("  · {}  → {}", col, ty);
+                for col in columns {
+                    println!("  · {}  → {}", col.name, col.table.as_deref().unwrap_or(""));
                 }
                 println!("  (original SQL: {})\n", stmt);
             }
@@ -58,14 +60,76 @@ fn insert_test_q3() {
     for stmt in parsed {
         if let StatementKind::Insert {
             ref table,
-            ref columns_and_values,
+            ref columns,
+            ref values,
         } = stmt.kind
         {
             println!("Table: {}", table);
-            for (col, val) in columns_and_values {
+            for (col, val) in columns.iter().zip(values[0].iter()) {
                 println!("  · {} → {}", col, val);
             }
             println!("  (original SQL: {})\n", stmt);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::statements::parsers::{
+        parse_create_table, parse_insert_statement, parse_select_statement,
+    };
+    use crate::statements::types::{Column, StatementKind};
+
+    #[test]
+    fn test_create_table_parsing() {
+        let sql = "CREATE TABLE test_table (col1 TEXT, col2 INTEGER)";
+        let stmt = parse_create_table(sql).unwrap();
+        if let StatementKind::CreateTable { name, columns } = stmt.kind {
+            assert_eq!(name, "test_table");
+            assert_eq!(columns.len(), 2);
+            assert_eq!(columns[0].name, "col1");
+            assert_eq!(columns[1].name, "col2");
+        } else {
+            panic!("Expected CreateTable variant");
+        }
+    }
+
+    #[test]
+    fn test_insert_parsing() {
+        let sql = "INSERT INTO test_table (col1, col2) VALUES ('value1', 42), ('value2', 43)";
+        let stmt = parse_insert_statement(sql).unwrap();
+        if let StatementKind::Insert {
+            table,
+            columns,
+            values,
+        } = stmt.kind
+        {
+            assert_eq!(table, "test_table");
+            assert_eq!(columns, vec!["col1", "col2"]);
+            assert_eq!(values.len(), 2);
+            assert_eq!(values[0], vec!["'value1'", "42"]);
+            assert_eq!(values[1], vec!["'value2'", "43"]);
+        } else {
+            panic!("Expected Insert variant");
+        }
+    }
+
+    #[test]
+    fn test_select_parsing() {
+        let sql = "SELECT col1, col2 FROM test_table WHERE col1 = 'value'";
+        let stmt = parse_select_statement(sql).unwrap();
+        if let StatementKind::Select {
+            columns,
+            tables,
+            conditions,
+            ..
+        } = stmt.kind
+        {
+            assert_eq!(columns.len(), 2);
+            assert_eq!(tables, vec!["test_table"]);
+            assert_eq!(conditions.len(), 1);
+        } else {
+            panic!("Expected Select variant");
         }
     }
 }
