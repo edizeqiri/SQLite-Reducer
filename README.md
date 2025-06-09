@@ -16,8 +16,11 @@ We have implemented the interface as described in the project description:
 ```bash
 reducer --query [File with query to be reduced] --test [Test Script to approve reduction]
 ```
-The result of the reduction will be printed as a WARN log and saved to the file in `TEST_CASE_LOCATION` 
-## Important
+The result of the reduction will be printed as a WARN log and saved to the file in `TEST_CASE_LOCATION`.
+
+If the env `QUICK_RUN` is set, then the bruteforce will not reduce and it will go 100x quicker.
+
+## Test Script
 
 > If you use your own test script then this is not important for you.
 

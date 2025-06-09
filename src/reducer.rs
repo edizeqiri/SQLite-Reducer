@@ -12,7 +12,7 @@ use log::{info, warn};
 
 pub fn reduce(current_ast: Vec<Statement>) -> Result<String, Box<dyn std::error::Error>> {
     let reduced = delta_debug(current_ast, 2)?;
-    let reduced = remove_table(&reduced)?;
+    //let reduced = remove_table(&reduced)?;
 
     let query = vec_statement_to_string(&reduced, ";")?;
 
@@ -30,6 +30,10 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<String, Box<dyn std::error:
         }
     };
 
+    // get env QUICK_RUN, if it is true then dont run this
+    if std::env::var("QUICK_RUN").is_ok() {
+        return Ok(reduced);
+    }
     let reduced = brute_force(&reduced)?;
 
     Ok(reduced)
