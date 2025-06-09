@@ -74,14 +74,14 @@ pub fn print_result(
         orig_num_stmt, num_statements_alt, orig_num_token, reduced_num_token, time_taken
     );
     warn!("{}", output);
-    warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
+    warn!("[ANALYSIS] {:?} [END ANALYSIS]", &normalized);
     write_output_to_file(
         &output,
-        &format!("src/output/result{}.csv", query_num).into(),
+        &format!("/output/result{}.csv", query_num).into(),
     );
 
-    write_output_to_file(&reduced_query, &get_test_case_location());
-    let _ = save_final_output( &query_num, &reduced_query);
+    write_output_to_file(&normalized.to_string(), &get_test_case_location());
+    let _ = save_final_output(&query_num, &normalized.to_string());
 
     Ok(())
 }
@@ -93,7 +93,7 @@ fn save_final_output(query_num: &String, final_query: &String) -> Result<(), Box
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("src/output/final_output{}.sql", query_num).into());
+    write_output_to_file(&final_output, &format!("/output/final_output{}.sql", query_num).into());
      Ok(())
  }
 
