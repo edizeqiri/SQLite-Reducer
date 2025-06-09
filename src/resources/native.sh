@@ -78,6 +78,18 @@ if [[ "$given_oracle" == *DIFF* ]]; then
   #echo "Both old and new contain 'near line', aborting."
   exit 1
   fi
+  
+  if [[ "$parse_old"  == *"unknown command"* && \
+      "$parse_new" == *"unknown command"* ]]; then
+  #echo "Both old and new contain 'near line', aborting."
+  exit 1
+  fi
+
+  if [[ "$parse_old"  == *"mode should be one of"* && \
+      "$parse_new" == *"mode should be one of"* ]]; then
+  #echo "Both old and new contain 'near line', aborting."
+  exit 1
+  fi
 
   if [[ "$parse_old" != "$parse_new" ]]; then
     #echo "QUERY $curr_query_num: $parse_old&$parse_new" >> /output/query.txt
