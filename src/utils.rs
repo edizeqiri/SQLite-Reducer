@@ -30,6 +30,7 @@ pub fn get_test_case_location() -> PathBuf {
         .map(PathBuf::from) // converts the String into a PathBuf
         .unwrap_or_else(|_| env::current_dir().unwrap().join("query.sql"));
     info!("Path to final query: {:?}", path);
+    env::set_var("TEST_CASE_LOCATION", &path);
     path
 }
 
@@ -40,7 +41,9 @@ pub fn print_result(
     reduced: &String,
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let reduced_query = reduced;
+    let re = Regex::new(r";+").unwrap();
+    // Replace each run with a single semicolon
+    let reduced_query = re.replace_all(&reduced, ";").to_string();
 
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
 
@@ -52,11 +55,9 @@ pub fn print_result(
     let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
 
     let orig_num_token = orig_query.split_whitespace().count();
-    let reduced_num_token = reduced_query.split_whitespace().count();
+    let reduced_num_token = reduced_query.split_whitespace().filter(|token| !matches!(*token, "(" | ")" | ";")).count();
 
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
-
-    let (_, query_number) = query_path.rsplit('/').nth(1).unwrap().split_at(5);
 
     let output = format!(
         "{},{},{},{},{}",
@@ -66,23 +67,23 @@ pub fn print_result(
     warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
     write_output_to_file(
         &output,
-        &format!("src/output/result{}.csv", query_number).into(),
+        &format!("src/output/result.csv").into(),
     );
 
     write_output_to_file(&reduced_query, &get_test_case_location());
-    let _ = save_final_output(query_number, &reduced_query);
+    let _ = save_final_output( &reduced_query);
 
     Ok(())
 }
 
-fn save_final_output(query_number: &str, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
+fn save_final_output(final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
     let test_case_location = driver::TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     let binding = driver::get_output_from_query(test_case_location)?;
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("src/output/final_output{}.sql", query_number).into());
+    write_output_to_file(&final_output, &format!("src/output/final_output.sql").into());
      Ok(())
  }
 
