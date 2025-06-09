@@ -42,7 +42,7 @@ pub fn print_result(
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let reduced_query = reduced;
-
+    let query_num = env::var("SQL_NUMBER").unwrap_or_else(|_| "0".to_string());
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
 
     // if it doesn’t already end in a semicolon (ignoring trailing whitespace), bump it by one
@@ -69,8 +69,6 @@ pub fn print_result(
     let reduced_num_token = word_re.find_iter(&reduced_query).count();
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
 
-    let (_, query_number) = query_path.rsplit('/').nth(1).unwrap().split_at(5);
-
     let output = format!(
         "{},{},{},{},{}",
         orig_num_stmt, num_statements_alt, orig_num_token, reduced_num_token, time_taken
@@ -79,23 +77,23 @@ pub fn print_result(
     warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
     write_output_to_file(
         &output,
-        &format!("src/output/result.csv").into(),
+        &format!("src/output/result{}.csv", query_num).into(),
     );
 
     write_output_to_file(&reduced_query, &get_test_case_location());
-    let _ = save_final_output( &reduced_query);
+    let _ = save_final_output( &query_num, &reduced_query);
 
     Ok(())
 }
 
-fn save_final_output(final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
+fn save_final_output(query_num: &String, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
     let test_case_location = driver::TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     let binding = driver::get_output_from_query(test_case_location)?;
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("src/output/final_output.sql").into());
+    write_output_to_file(&final_output, &format!("src/output/final_output{}.sql", query_num).into());
      Ok(())
  }
 
