@@ -41,9 +41,7 @@ pub fn print_result(
     reduced: &String,
     elapsed_time: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let re = Regex::new(r";+").unwrap();
-    // Replace each run with a single semicolon
-    let reduced_query = re.replace_all(&reduced, ";").to_string();
+    let reduced_query = reduced;
 
     let mut orig_num_stmt = orig_query.chars().filter(|&c| c == ';').count();
 
@@ -52,18 +50,32 @@ pub fn print_result(
         orig_num_stmt += 1;
     }
 
-    let reduced_num_stmt = reduced_query.chars().filter(|&c| c == ';').count();
+    // 1. collapse ";;;" → ";"
+    let normalized = {
+        // using a simple regex replace requires `regex = "1.5"` in Cargo.toml
+        let re = regex::Regex::new(r";+").unwrap();
+        re.replace_all(&reduced_query, ";")
+    };
 
-    let orig_num_token = orig_query.split_whitespace().count();
-    let reduced_num_token = reduced_query.split_whitespace().filter(|token| !matches!(*token, "(" | ")" | ";")).count();
+    // 2b. split on ';' and ignore empty pieces to get the same count
+    let num_statements_alt = normalized
+        .split(';')
+        .filter(|piece| !piece.trim().is_empty())
+        .count();
 
+    let word_re = regex::Regex::new(r"\b\w+\b").unwrap();
+
+    let orig_num_token = word_re.find_iter(orig_query).count();
+    let reduced_num_token = word_re.find_iter(&reduced_query).count();
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
+
+    let (_, query_number) = query_path.rsplit('/').nth(1).unwrap().split_at(5);
 
     let output = format!(
         "{},{},{},{},{}",
-        orig_num_stmt, reduced_num_stmt, orig_num_token, reduced_num_token, time_taken
+        orig_num_stmt, num_statements_alt, orig_num_token, reduced_num_token, time_taken
     );
-
+    warn!("{}", output);
     warn!("[ANALYSIS] {:?} [END ANALYSIS]", &reduced_query);
     write_output_to_file(
         &output,
