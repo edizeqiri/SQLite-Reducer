@@ -46,7 +46,7 @@ out_new=$(run_sqlite "$db_path_new")
 output="${out_old}&${out_new}"
 #echo $output
 
-if [ "$oracle" = "" ]; then
+if [[ "$oracle" == "" ]]; then
   echo "$output"
   #echo "$output;" >> /Users/saschatran/Desktop/Uni_gits/reducer/src/resources/test.csv
   exit 0

@@ -12,9 +12,9 @@ for i in {1..20}; do
     export SQL_NUMBER=$i
     export TEST_CASE_LOCATION=/output/query$i.sql
 
-    cargo run --package reducer --bin reducer -- \
+    reducer \
       --query queries/query$i/original_test.sql \
-      --test src/resources/native.sh \
+      --test native.sh \
     2>&1 | tee /output/logs/job_${i}.log
   ) &
 
