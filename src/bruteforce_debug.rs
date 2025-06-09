@@ -9,15 +9,13 @@ pub fn bruteforce_delta_debug(
     mut data: Vec<String>,
     mut granularity: usize,
     index: usize,
-    original_query: &Vec<String>
+    original_query: &Vec<String>,
 ) -> Result<String, Box<dyn Error>> {
-
     while granularity > 1 && granularity <= data.len() {
         let tests = split_tests(&data, granularity);
         let mut reduced = false;
 
         for mut delta in tests {
-
             let mut orig_delta = original_query.clone();
             let mut orig_nabla = original_query.clone();
             let mut nabla = get_nabla(&data, &delta);
@@ -31,7 +29,7 @@ pub fn bruteforce_delta_debug(
 
             let mut input_delta = delta.join(" ");
             if !input_delta.ends_with(';') {
-                input_delta.push(';'); 
+                input_delta.push(';');
             }
 
             let mut input_nabla = nabla.join(" ");
@@ -124,8 +122,7 @@ pub fn get_nabla(data: &[String], delta: &[String]) -> Vec<String> {
         .collect()
 }
 
-
-fn string_w_para(queries : &Vec<String>) -> Vec<String> {
+fn string_w_para(queries: &Vec<String>) -> Vec<String> {
     let mut quer = queries.clone();
     if find_first_paren(&queries) == Some(')') {
         quer.insert(0, '('.to_string());
@@ -151,22 +148,15 @@ fn find_last_paren(items: &[String]) -> Option<char> {
         .find_map(|s| s.chars().rev().find(|&c| c == '(' || c == ')'))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_split_tests() {
-        let tests = vec![
-            "a".into(), "b".into(), "c".into(), "d".into(), "e".into(),
-        ];
+        let tests = vec!["a".into(), "b".into(), "c".into(), "d".into(), "e".into()];
         let parts = split_tests(&tests, 3);
-        assert_eq!(parts, vec![
-            vec!["a", "b"],
-            vec!["c", "d"],
-            vec!["e"],
-        ]);
+        assert_eq!(parts, vec![vec!["a", "b"], vec!["c", "d"], vec!["e"],]);
     }
 
     #[test]

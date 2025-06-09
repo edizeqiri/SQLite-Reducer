@@ -99,7 +99,6 @@ where
     Ok(base)
 }
 
-
 /// Returns all items in `data` that are *not* in `delta`.
 fn get_nabla<T: Clone + PartialEq>(data: &[T], delta: &[T]) -> Vec<T> {
     data.iter()
@@ -122,4 +121,3 @@ fn test_get_nabla() {
     let nabla = get_nabla(&data, &delta);
     assert_eq!(nabla, vec![10]);
 }
-

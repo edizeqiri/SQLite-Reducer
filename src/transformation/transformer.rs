@@ -46,4 +46,3 @@ pub fn transform(mut stmts: Vec<Statement>) -> Vec<Statement> {
     }
     stmts
 }
-

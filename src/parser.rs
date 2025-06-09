@@ -1,11 +1,11 @@
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
 
-
 use crate::statements::{parsers, types::Statement};
 
-
-pub fn sqlparser_generate_ast(sql: &str) -> Result<Vec<sqlparser::ast::Statement>, Box<dyn std::error::Error>> {
+pub fn sqlparser_generate_ast(
+    sql: &str,
+) -> Result<Vec<sqlparser::ast::Statement>, Box<dyn std::error::Error>> {
     let dialect = GenericDialect::default();
     let ast = Parser::parse_sql(&dialect, sql)?;
     Ok(ast)

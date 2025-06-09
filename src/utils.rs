@@ -66,7 +66,7 @@ pub fn print_result(
     let word_re = regex::Regex::new(r"\b\w+\b").unwrap();
 
     let orig_num_token = word_re.find_iter(orig_query).count();
-    let reduced_num_token = word_re.find_iter(&reduced_query).count();
+    let reduced_num_token = word_re.find_iter(&normalized).count();
     let time_taken = elapsed_time.as_secs_f64() * 1000.0; // in ms
 
     let output = format!(
@@ -75,10 +75,7 @@ pub fn print_result(
     );
     warn!("{}", output);
     warn!("[ANALYSIS] {:?} [END ANALYSIS]", &normalized);
-    write_output_to_file(
-        &output,
-        &format!("/output/result{}.csv", query_num).into(),
-    );
+    write_output_to_file(&output, &format!("/output/result{}.csv", query_num).into());
 
     write_output_to_file(&normalized.to_string(), &get_test_case_location());
     let _ = save_final_output(&query_num, &normalized.to_string());
@@ -86,16 +83,24 @@ pub fn print_result(
     Ok(())
 }
 
-fn save_final_output(query_num: &String, final_query: &String) -> Result<(), Box<dyn std::error::Error>> {
-    let test_case_location = driver::TEST_CASE_LOCATION.get().expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
+fn save_final_output(
+    query_num: &String,
+    final_query: &String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let test_case_location = driver::TEST_CASE_LOCATION
+        .get()
+        .expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
     let binding = driver::get_output_from_query(test_case_location)?;
     let output = from_utf8(&binding.stdout)?;
 
     let final_output = format!("{:?}\n\n{}", &output, final_query);
-    write_output_to_file(&final_output, &format!("/output/final_output{}.sql", query_num).into());
-     Ok(())
- }
+    write_output_to_file(
+        &final_output,
+        &format!("/output/final_output{}.sql", query_num).into(),
+    );
+    Ok(())
+}
 
 pub(crate) fn read_and_parse_args(args: Cli, pwd: PathBuf) -> (String, PathBuf, String) {
     let query_path = pwd.join(args.query);

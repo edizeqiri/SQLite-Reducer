@@ -1,12 +1,12 @@
+pub mod bruteforce_debug;
 mod delta_debug;
+pub mod delta_debug_stmt;
 mod driver;
 mod parser;
 mod reducer;
 pub mod statements;
 mod transformation;
 mod utils;
-pub mod delta_debug_stmt;
-pub mod bruteforce_debug;
 
 use crate::delta_debug::delta_debug;
 use crate::utils::vec_statement_to_string;
@@ -36,13 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("{:?}", reduced);
 
     info!("writing results to file");
-    utils::print_result(
-        &query_path,
-        &query,
-        &reduced,
-        start.elapsed(),
-    )
-    .expect("TODO: panic message");
+    utils::print_result(&query_path, &query, &reduced, start.elapsed())
+        .expect("TODO: panic message");
     info!("finished writing results to file");
     Ok(())
 }

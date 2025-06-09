@@ -66,7 +66,6 @@ pub(crate) fn get_output_from_query(query: &PathBuf) -> io::Result<Output> {
 
     let out = Command::new(test_script_path).arg(query).arg("").output();
     out
-
 }
 
 fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) {

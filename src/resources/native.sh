@@ -78,6 +78,12 @@ if [[ "$given_oracle" == *DIFF* ]]; then
   #echo "Both old and new contain 'near line', aborting."
   exit 1
   fi
+
+  if [[ "$parse_old"  == *"syntax"* && \
+      "$parse_new" == *"syntax"* ]]; then
+  #echo "Both old and new contain 'near line', aborting."
+  exit 1
+  fi
   
   if [[ "$parse_old"  == *"unknown command"* && \
       "$parse_new" == *"unknown command"* ]]; then

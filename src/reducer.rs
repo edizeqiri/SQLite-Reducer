@@ -4,58 +4,57 @@ use std::vec;
 use crate::bruteforce_debug::{self, bruteforce_delta_debug};
 use crate::delta_debug::{self, delta_debug};
 use crate::delta_debug_stmt::delta_debug_stmt;
-use crate::parser::generate_ast;
+use crate::parser::{generate_ast, sqlparser_generate_ast};
 use crate::statements::types::{Statement, StatementKind};
+use crate::transformation::transformer::transform;
 use crate::utils::vec_statement_to_string;
-use log::info;
+use log::{info, warn};
 
 pub fn reduce(current_ast: Vec<Statement>) -> Result<String, Box<dyn std::error::Error>> {
-    let current_ast_length = current_ast.len();
+    let reduced = delta_debug(current_ast, 2)?;
+    let reduced = remove_table(&reduced)?;
 
-    let mut reduced = delta_debug(current_ast, 2)?;
+    let query = vec_statement_to_string(&reduced, ";")?;
 
-    reduced = remove_table(&reduced)?;
+    let reduced = match sqlparser_generate_ast(&query) {
+        Ok(ast) => match vec_statement_to_string(&transform(ast), ";") {
+            Ok(result) => result,
+            Err(e) => {
+                warn!("Failed to transform query: {}. Using original query.", e);
+                query
+            }
+        },
+        Err(e) => {
+            warn!("Failed to parse query: {}. Using original query.", e);
+            query
+        }
+    };
 
-    let mut converted = vec_statement_to_string(&reduced, ";")?;
+    let reduced = brute_force(&reduced)?;
 
-    converted = brute_force(&converted)?;
-
-
-    info!(
-        "original query length: {:?}, reduced query length: {:?}",
-        current_ast_length,
-        reduced.len()
-    );
-
-    Ok(converted)
+    Ok(reduced)
 }
 
 fn brute_force(queries: &String) -> Result<String, Box<dyn std::error::Error>> {
-        let mut vec_query: Vec<String> = queries
-        .split(';')
-        .map(str::to_string)
-        .collect();
+    let mut vec_query: Vec<String> = queries.split(';').map(str::to_string).collect();
 
     for (index, stmt) in queries.split(";").into_iter().enumerate() {
         let query_vec: Vec<String> = stmt
-        .replace("(", " ( ")
-        .replace(")", " ) ")
-        .split(' ')
-        .filter(|s| !s.trim().is_empty())
-        .map(|s| s.to_string())
-        .collect();
+            .replace("(", " ( ")
+            .replace(")", " ) ")
+            .split(' ')
+            .filter(|s| !s.trim().is_empty())
+            .map(|s| s.to_string())
+            .collect();
 
         let reduced = bruteforce_delta_debug(query_vec, 2, index, &vec_query)?;
         vec_query[index] = reduced;
     }
-    
-    Ok(vec_query.join(";"))
 
+    Ok(vec_query.join(";"))
 }
 
-fn remove_table(
-    queries: &Vec<Statement>,
-) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
+fn remove_table(queries: &Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std::error::Error>> {
     let table_names: Vec<&String> = queries
         .iter()
         .filter_map(|stmt| stmt.get_create_table_name())
@@ -108,13 +107,17 @@ pub fn remove_table_in_place(table: &str, queries: Vec<Statement>) -> Vec<Statem
     filtered_queries
 }
 
-pub fn remove_tables_in_place<T: AsRef<str>>(tables: &[T], queries: &Vec<Statement>) -> Vec<Statement> {
-    tables.iter().fold(queries.clone(), |current_queries, table| {
-        // table.as_ref() gives you &str, so it works with your existing fn
-        remove_table_in_place(table.as_ref(), current_queries)
-    })
+pub fn remove_tables_in_place<T: AsRef<str>>(
+    tables: &[T],
+    queries: &Vec<Statement>,
+) -> Vec<Statement> {
+    tables
+        .iter()
+        .fold(queries.clone(), |current_queries, table| {
+            // table.as_ref() gives you &str, so it works with your existing fn
+            remove_table_in_place(table.as_ref(), current_queries)
+        })
 }
-
 
 #[test]
 fn test_remove_query2() {

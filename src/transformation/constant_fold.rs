@@ -1,3 +1,4 @@
+use crate::driver::test_query;
 use crate::transformation::transformer::Transform;
 use sqlparser::ast::Value::{Boolean, Number};
 use sqlparser::ast::{
@@ -40,7 +41,7 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
     match stmt {
         Statement::Query(boxed_q) => {
             let q = *boxed_q;
-            let new_body = fold_setexpr(*q.body);
+            let new_body = fold_setexpr((*q.body).clone());
 
             // If the selection is false, return None
             if let SetExpr::Select(select) = &new_body {
@@ -53,55 +54,101 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                 }
             }
 
-            Some(Statement::Query(Box::new(Query {
-                body: Box::new(new_body),
-                ..q
-            })))
+            // Test the folded query
+            let folded_query = Statement::Query(Box::new(Query {
+                body: Box::new(new_body.clone()),
+                with: q.with.clone(),
+                order_by: q.order_by.clone(),
+                limit_clause: q.limit_clause.clone(),
+                fetch: q.fetch.clone(),
+                locks: q.locks.clone(),
+                for_clause: q.for_clause.clone(),
+                settings: q.settings.clone(),
+                format_clause: q.format_clause.clone(),
+            }));
+
+            // Convert the folded query to string and test it
+            let query_str = folded_query.to_string();
+            match test_query(&query_str) {
+                Ok(false) => Some(folded_query),
+                _ => {
+                    // If the fold failed, try the original query
+                    let original_query = Statement::Query(Box::new(Query {
+                        body: Box::new((*q.body).clone()),
+                        with: q.with.clone(),
+                        order_by: q.order_by.clone(),
+                        limit_clause: q.limit_clause.clone(),
+                        fetch: q.fetch.clone(),
+                        locks: q.locks.clone(),
+                        for_clause: q.for_clause.clone(),
+                        settings: q.settings.clone(),
+                        format_clause: q.format_clause.clone(),
+                    }));
+                    let original_str = original_query.to_string();
+                    match test_query(&original_str) {
+                        Ok(false) => Some(original_query),
+                        _ => None,
+                    }
+                }
+            }
         }
         Statement::Insert(mut boxed_i) => {
             // Extract and fold the source query if it exists
             if let Some(source) = boxed_i.source.take() {
-                let folded_body = fold_setexpr(*source.body);
-                /*
-                // Check if the WHERE clause evaluates to false
-                if let SetExpr::Select(select) = &folded_body {
-                    if let Some(SQLExpr::Value(ValueWithSpan {
-                        value: Boolean(false),
-                        ..
-                    })) = select.selection
-                    {
-                        // Create INSERT with empty VALUES instead of returning None
-                        boxed_i.source = Some(Box::new(Query {
-                            body: Box::new(SetExpr::Values(sqlparser::ast::Values {
-                                explicit_row: false,
-                                rows: vec![],
-                            })),
-                            with: None,
-                            order_by: None,
-                            limit_clause: None,
-                            fetch: None,
-                            locks: vec![],
-                            for_clause: None,
-                            settings: None,
-                            format_clause: None,
-                        }));
-                        return Some(Statement::Insert(boxed_i));
-                    }
-                }*/
+                let folded_body = fold_setexpr((*source.body).clone());
 
-                // Reconstruct the query with folded body
-                let new_source = Query {
-                    body: Box::new(folded_body),
-                    ..*source
+                // Test the folded query
+                let folded_source = Query {
+                    body: Box::new(folded_body.clone()),
+                    with: source.with.clone(),
+                    order_by: source.order_by.clone(),
+                    limit_clause: source.limit_clause.clone(),
+                    fetch: source.fetch.clone(),
+                    locks: source.locks.clone(),
+                    for_clause: source.for_clause.clone(),
+                    settings: source.settings.clone(),
+                    format_clause: source.format_clause.clone(),
                 };
+                let mut folded_insert = boxed_i.clone();
+                folded_insert.source = Some(Box::new(folded_source.clone()));
+                let folded_query = Statement::Insert(folded_insert);
 
-                // Update the INSERT with the folded source
-                boxed_i.source = Some(Box::new(new_source));
+                let query_str = folded_query.to_string();
+                match test_query(&query_str) {
+                    Ok(false) => {
+                        boxed_i.source = Some(Box::new(folded_source));
+                        Some(Statement::Insert(boxed_i))
+                    }
+                    _ => {
+                        // If the fold failed, try the original query
+                        let original_source = Query {
+                            body: Box::new((*source.body).clone()),
+                            with: source.with.clone(),
+                            order_by: source.order_by.clone(),
+                            limit_clause: source.limit_clause.clone(),
+                            fetch: source.fetch.clone(),
+                            locks: source.locks.clone(),
+                            for_clause: source.for_clause.clone(),
+                            settings: source.settings.clone(),
+                            format_clause: source.format_clause.clone(),
+                        };
+                        let mut original_insert = boxed_i.clone();
+                        original_insert.source = Some(Box::new(original_source.clone()));
+                        let original_query = Statement::Insert(original_insert);
+                        let original_str = original_query.to_string();
+                        match test_query(&original_str) {
+                            Ok(false) => {
+                                boxed_i.source = Some(Box::new(original_source));
+                                Some(Statement::Insert(boxed_i))
+                            }
+                            _ => None,
+                        }
+                    }
+                }
+            } else {
+                Some(Statement::Insert(boxed_i))
             }
-
-            Some(Statement::Insert(boxed_i))
         }
-
         other => Some(other),
     }
 }
@@ -336,30 +383,32 @@ fn fold_expr(expr: SQLExpr) -> SQLExpr {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser;
+    use crate::{driver, parser};
 
     #[test]
     fn test_fold_query1() {
         let query = "SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
-        let ast = parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
+        let ast =
+            parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
         assert_eq!(ast.unwrap(), None)
     }
 
     #[test]
     fn test_simple_math() {
         let query = "SELECT 2 + 3 * (4 - 1)";
-        let ast = parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
+        let ast =
+            parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
         assert_eq!(ast.unwrap().unwrap().to_string(), "SELECT 11")
     }
 
     #[test]
     fn test_fold_query_with_insert() {
         let query = "INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ((247 * (91 * (-47))) + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-((193 + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+((((+(+(-202))) / (+52)) - (-(228 + (-104)))) * (-24)))))) = (false <> (66 <> 8)));";
-        let ast = parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
+        let ast =
+            parser::sqlparser_generate_ast(query).and_then(|it| Ok(fold_statement(it[0].clone())));
         assert_eq!(
             ast.unwrap().unwrap().to_string(),
             "INSERT INTO F SELECT * FROM (VALUES (true, false), (NULL, true)) AS L WHERE false"
         )
     }
 }
-
