@@ -41,3 +41,4 @@ docker build -t reducer .
 docker run -it --rm reducer /bin/bash -c "export SQL_NUMBER=17; export TEST_CASE_LOCATION=/output/query17.sql; reducer --query queries/query17/original_test.sql --test native.sh"
 ```
 
+The `/output` folder has all the outputs and queries of the reduction.
