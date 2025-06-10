@@ -21,7 +21,6 @@ where
             info!("delta: {}", delta.len());
             info!("nabla: {}", nabla.len());
 
-            // use `?` to propagate any I/O/test errors
             if test_query(&input_delta)? {
                 data = delta.clone();
                 reduced = true;

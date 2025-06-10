@@ -66,27 +66,21 @@ impl Statement {
                     return;
                 }
 
-                // Remove columns referencing the table
                 columns.retain(|col| col.table.as_ref() != Some(&table.to_string()));
 
-                // Remove conditions referencing the table
                 conditions.retain(|cond| cond.table != table);
 
-                // Process WITH clauses
                 for with_clause in with_clauses.iter_mut() {
                     with_clause.query.remove_table_references(table);
                 }
 
-                // Process subqueries
                 subqueries.retain_mut(|subquery| {
                     subquery.remove_table_references(table);
                     !subquery.get_tables().is_empty()
                 });
 
-                // Reconstruct the SQL query
                 let mut parts = Vec::new();
 
-                // Add WITH clauses if any
                 if !with_clauses.is_empty() {
                     let with_parts: Vec<String> = with_clauses
                         .iter()
@@ -95,7 +89,6 @@ impl Statement {
                     parts.push(format!("WITH {}", with_parts.join(", ")));
                 }
 
-                // Add SELECT part
                 let distinct_str = if *is_distinct { "DISTINCT " } else { "" };
                 let columns_str = columns
                     .iter()
@@ -110,19 +103,16 @@ impl Statement {
                     .join(", ");
                 parts.push(format!("SELECT {}{}", distinct_str, columns_str));
 
-                // Add FROM part
                 if !tables.is_empty() {
                     parts.push(format!("FROM {}", tables.join(", ")));
                 }
 
-                // Add WHERE part
                 if !conditions.is_empty() {
                     let where_conditions: Vec<String> =
                         conditions.iter().map(|cond| cond.column.clone()).collect();
                     parts.push(format!("WHERE {}", where_conditions.join(" AND ")));
                 }
 
-                // Add GROUP BY part if any columns remain
                 let group_by_cols: Vec<String> = columns
                     .iter()
                     .filter(|col| col.table.as_ref() != Some(&table.to_string()))
@@ -132,14 +122,12 @@ impl Statement {
                     parts.push(format!("GROUP BY {}", group_by_cols.join(", ")));
                 }
 
-                // Add HAVING part if any conditions remain
                 if !conditions.is_empty() {
                     let having_conditions: Vec<String> =
                         conditions.iter().map(|cond| cond.column.clone()).collect();
                     parts.push(format!("HAVING {}", having_conditions.join(" AND ")));
                 }
 
-                // Add ORDER BY part if any columns remain
                 let order_by_cols: Vec<String> = columns
                     .iter()
                     .filter(|col| col.table.as_ref() != Some(&table.to_string()))
@@ -149,7 +137,6 @@ impl Statement {
                     parts.push(format!("ORDER BY {}", order_by_cols.join(", ")));
                 }
 
-                // Join all parts with spaces
                 self.original = parts.join(" ");
             }
             StatementKind::Trigger {
@@ -159,27 +146,23 @@ impl Statement {
                 table: trigger_table,
                 body,
             } => {
-                // If trigger is on the table we're removing, remove the entire trigger
                 if trigger_table == table {
                     self.kind = StatementKind::Unknown;
                     self.original = "".to_string();
                     return;
                 }
 
-                // If any statement in the trigger body references the table, remove the trigger
                 if body.iter().any(|stmt| stmt.contains(table)) {
                     self.kind = StatementKind::Unknown;
                     self.original = "".to_string();
                     return;
                 }
-                // Otherwise, keep the trigger unchanged
             }
             StatementKind::CreateView { name, query } => {
                 query.remove_table_references(table);
                 self.original = format!("CREATE VIEW {} AS {}", name, query.original);
             }
             StatementKind::Unknown => {
-                // Handle trigger statements
                 if self.original.to_uppercase().contains("CREATE TRIGGER") {
                     if let Ok(mut trigger_stmt) =
                         crate::statements::parsers::parse_trigger_statement(&self.original)
@@ -193,7 +176,6 @@ impl Statement {
                         }
                     }
                 }
-                // Handle SELECT statements
                 else if self.original.to_uppercase().contains("SELECT") {
                     if let Ok(mut select_stmt) =
                         crate::statements::parsers::parse_select_statement(&self.original)

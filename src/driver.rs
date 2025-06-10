@@ -20,9 +20,7 @@ pub fn test_query(query: &String) -> Result<bool, Box<dyn std::error::Error>> {
         .get()
         .expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
-    // write query into the corresponding file
     utils::write_output_to_file(query, test_case_location);
-    // `cmd` is now an owned `Command`
     let (output, status) = get_exit_status_from_query();
 
     match status?.code() {
@@ -82,11 +80,9 @@ fn get_exit_status_from_query() -> (io::Result<Output>, io::Result<ExitStatus>) 
         .get()
         .expect("TEST_CASE_LOCATION is not set and default path doesn't work somehow.");
 
-    // Build an owned `Command` here:
     let mut binding = Command::new(test_script_path);
 
     let cmd = binding.arg(&test_case_location).arg(expected_output);
 
-    // Return it by value (not by reference):
     (cmd.output(), cmd.status())
 }

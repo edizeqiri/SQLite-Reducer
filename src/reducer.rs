@@ -25,7 +25,6 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<String, Box<dyn std::error:
             }
         },
         Err(e) => {
-            warn!("Failed to parse query: {}. Using original query.", e);
             query
         }
     };
@@ -64,9 +63,7 @@ fn remove_table(queries: &Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std:
         .filter_map(|stmt| stmt.get_create_table_name())
         .collect();
 
-    // TODO: delta debug on table_names
-    // delta debug needs to remove table and then check if removal was successful
-    // if not keep the table name-
+
     let all_tables = delta_debug_stmt(table_names, 2, queries);
     info!("removed these tables: {:?}", all_tables);
 
@@ -100,12 +97,10 @@ pub fn remove_table_in_place(table: &str, queries: Vec<Statement>) -> Vec<Statem
         })
         .collect();
 
-    // Then remove table references from remaining statements
     for stmt in &mut filtered_queries {
         stmt.remove_table_references(table);
     }
 
-    // Filter out any empty statements that resulted from the removal
     filtered_queries.retain(|stmt| !stmt.original.is_empty());
 
     filtered_queries
@@ -118,7 +113,6 @@ pub fn remove_tables_in_place<T: AsRef<str>>(
     tables
         .iter()
         .fold(queries.clone(), |current_queries, table| {
-            // table.as_ref() gives you &str, so it works with your existing fn
             remove_table_in_place(table.as_ref(), current_queries)
         })
 }

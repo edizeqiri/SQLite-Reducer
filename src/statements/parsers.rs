@@ -13,7 +13,6 @@ pub fn parse_insert_statement(sql: &str) -> Result<Statement, Box<dyn std::error
         let columns_str = caps.get(2).map_or("", |m| m.as_str());
         let values_str = caps[3].to_string();
 
-        // Parse columns
         let columns: Vec<String> = if !columns_str.is_empty() {
             columns_str
                 .split(',')
@@ -23,7 +22,6 @@ pub fn parse_insert_statement(sql: &str) -> Result<Statement, Box<dyn std::error
             Vec::new()
         };
 
-        // Parse values
         let values: Vec<Vec<String>> = values_str
             .split("),")
             .map(|value_group| {
@@ -61,7 +59,6 @@ pub fn parse_create_table(sql: &str) -> Result<Statement, Box<dyn std::error::Er
         let name = caps[1].to_string();
         let columns_str = caps[2].to_string();
 
-        // Parse columns
         let columns: Vec<Column> = columns_str
             .split(',')
             .filter(|s| !s.trim().is_empty())
@@ -114,7 +111,6 @@ pub fn parse_create_view_statement(query: &str) -> Result<Statement, Box<dyn std
 }
 
 pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::error::Error>> {
-    // Handle WITH clauses first
     let (with_clauses, remaining_query) = if query.to_uppercase().contains("WITH") {
         let re = Regex::new(r"(?i)^\s*WITH\s+(.+?)\s+AS\s+\((.+?)\)\s+(.+)$")?;
         if let Some(caps) = re.captures(query) {
@@ -158,7 +154,6 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
         (Vec::new(), query)
     };
 
-    // Handle EXISTS subqueries
     let exists_re = Regex::new(r"(?i)EXISTS\s*\(\s*(SELECT.+?)\s*\)")?;
     let mut subqueries = Vec::new();
     let mut processed_query = remaining_query.to_string();
@@ -171,7 +166,6 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
         processed_query = processed_query.replace(&cap[0], "EXISTS_SUBQUERY");
     }
 
-    // Parse the main SELECT statement with a more flexible pattern
     let re = Regex::new(
         r"(?i)^\s*SELECT\s+(?:DISTINCT\s+)?(.+?)(?:\s+FROM\s+)([^;]+?)(?:\s+WHERE\s+(.+?))?(?:\s+GROUP\s+BY\s+(.+?))?(?:\s+HAVING\s+(.+?))?(?:\s+ORDER\s+BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?(?:\s*;)?$",
     )?;
@@ -180,7 +174,6 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
         .captures(&processed_query)
         .ok_or_else(|| format!("Not a valid SELECT statement: {}", processed_query))?;
 
-    // Parse columns
     let columns_str = caps[1].trim();
     let columns = if columns_str.contains("EXISTS_SUBQUERY") {
         vec![Column {
@@ -207,13 +200,11 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
             .collect()
     };
 
-    // Parse tables with better handling of JOINs and aliases
     let tables_str = caps[2].trim();
     let tables = tables_str
         .split(',')
         .flat_map(|t| {
             let t = t.trim();
-            // Handle JOIN clauses
             if t.to_uppercase().contains("JOIN") {
                 let join_parts: Vec<&str> = t.split_whitespace().collect();
                 join_parts
@@ -224,7 +215,6 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
                     .map(|&part| part.trim().to_string())
                     .collect::<Vec<String>>()
             } else {
-                // Handle simple table references and aliases
                 if let Some(idx) = t.find(char::is_whitespace) {
                     vec![t[..idx].trim().to_string()]
                 } else {
@@ -234,10 +224,8 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
         })
         .collect();
 
-    // Parse conditions with better table reference detection
     let mut conditions = Vec::new();
     if let Some(where_str) = caps.get(3).map(|m| m.as_str().trim()) {
-        // Find all table references in the WHERE clause
         let table_re = Regex::new(r"(?i)([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)")?;
         let mut table_refs = Vec::new();
 
@@ -248,7 +236,6 @@ pub fn parse_select_statement(query: &str) -> Result<Statement, Box<dyn std::err
             }
         }
 
-        // For each table reference, create a condition
         for table_name in table_refs {
             conditions.push(Condition {
                 table: table_name,
@@ -283,24 +270,20 @@ pub fn parse_trigger_statement(sql: &str) -> Result<Statement, Box<dyn std::erro
         let table = caps[4].to_string();
         let body = caps[5].to_string();
 
-        // Split body into individual statements and parse each one
         let body_statements: Vec<String> = body
             .split(';')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
 
-        // Try to parse each statement in the body
         let mut parsed_body = Vec::new();
         for stmt in body_statements {
-            // Try to parse as UPDATE first
             if stmt.to_uppercase().starts_with("UPDATE") {
                 if let Ok(update_stmt) = parse_update_statement(&stmt) {
                     parsed_body.push(update_stmt.original);
                     continue;
                 }
             }
-            // If not an UPDATE or parsing failed, keep original
             parsed_body.push(stmt);
         }
 
@@ -328,7 +311,6 @@ pub fn parse_update_statement(sql: &str) -> Result<Statement, Box<dyn std::error
     if let Some(caps) = update_regex.captures(sql) {
         let table = caps[1].to_string();
 
-        // For now, we just care about the table name, so we'll use empty values for the rest
         Ok(Statement {
             original: sql.to_string(),
             kind: StatementKind::Update {

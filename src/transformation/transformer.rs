@@ -5,7 +5,6 @@ pub trait Transform {
     fn apply(&self, stmt: Statement) -> Statement;
 }
 
-// 1) Define your enum of passes
 pub enum TransformPass {
     ConstantFold(ConstantFold),
     /*PredicatePushdown(PredicatePushdown),
@@ -14,7 +13,6 @@ pub enum TransformPass {
     JoinReorder(JoinReorder),*/
 }
 
-// 2) Implement the common trait on the enum
 impl Transform for TransformPass {
     fn apply(&self, stmt: Statement) -> Statement {
         match self {
@@ -36,7 +34,6 @@ pub fn transform(mut stmts: Vec<Statement>) -> Vec<Statement> {
         TransformPass::JoinReorder(JoinReorder{}),*/
     ];
 
-    // 4) Run them
     for pass in &transforms {
         stmts = stmts
             .clone()

@@ -17,7 +17,7 @@ use std::time::Instant;
 // ./reducer –query <query-to-minimize –test <an arbitrary-script>
 // cargo run --package reducer --bin reducer -- --query queries/query1/original_test.sql --test src/resources/native.sh
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let start = Instant::now(); // start timing
+    let start = Instant::now();
 
     let path_to_save = utils::get_test_case_location();
     let (args, pwd) = utils::init();

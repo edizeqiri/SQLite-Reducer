@@ -51,7 +51,6 @@ where
         let mut progressed = false;
 
         for chunk in &tests {
-            // Try including the chunk
             let mut trial = base.clone();
             trial.extend(chunk.iter().cloned());
             let tmp = remove_tables_in_place(&trial, query);
@@ -65,7 +64,6 @@ where
                 break;
             }
 
-            // Try keeping everything except this chunk
             let complement = difference(&remaining, chunk);
             let mut trial2 = base.clone();
             trial2.extend(complement.iter().cloned());
@@ -85,7 +83,6 @@ where
         }
     }
 
-    // Final: try to add remaining elements one-by-one
     for e in remaining {
         let mut trial = base.clone();
         trial.push(e.clone());

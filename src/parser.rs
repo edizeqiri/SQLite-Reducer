@@ -29,25 +29,21 @@ pub fn generate_ast(sql: &str) -> Result<Vec<Statement>, Box<dyn std::error::Err
 
         // Try each parser in sequence, but handle errors properly
         let stmt = if raw.to_uppercase().starts_with("UPDATE") {
-            // For UPDATE statements, try the update parser first
             match parsers::parse_update_statement(&raw) {
                 Ok(stmt) => stmt,
                 Err(_) => Statement::new(&raw),
             }
         } else if raw.to_uppercase().starts_with("DELETE") {
-            // For DELETE statements, try the delete parser first
             match parsers::parse_delete_statement(&raw) {
                 Ok(stmt) => stmt,
                 Err(_) => Statement::new(&raw),
             }
         } else if raw.to_uppercase().starts_with("ALTER TABLE") {
-            // For ALTER TABLE statements, try the alter table parser first
             match parsers::parse_alter_table_statement(&raw) {
                 Ok(stmt) => stmt,
                 Err(_) => Statement::new(&raw),
             }
         } else {
-            // For other statements, try all parsers in sequence
             parsers::parse_create_table(&raw)
                 .or_else(|_| parsers::parse_insert_statement(&raw))
                 .or_else(|_| parsers::parse_create_view_statement(&raw))

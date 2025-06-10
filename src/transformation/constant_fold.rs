@@ -6,9 +6,7 @@ use sqlparser::ast::{
     ValueWithSpan,
 };
 
-/// A transformer that performs constant folding on SQL expressions.
-/// Constant folding evaluates constant expressions at compile time,
-/// reducing runtime computation.
+
 #[derive(Debug, Default)]
 pub struct ConstantFold;
 
@@ -18,7 +16,6 @@ impl Transform for ConstantFold {
     }
 }
 
-/// Creates an empty query that returns no rows
 fn create_empty_query() -> Statement {
     Statement::Query(Box::new(Query {
         body: Box::new(SetExpr::Values(sqlparser::ast::Values {
@@ -36,14 +33,12 @@ fn create_empty_query() -> Statement {
     }))
 }
 
-/// Folds a SQL statement, returning None if the statement evaluates to false
 fn fold_statement(stmt: Statement) -> Option<Statement> {
     match stmt {
         Statement::Query(boxed_q) => {
             let q = *boxed_q;
             let new_body = fold_setexpr((*q.body).clone());
 
-            // If the selection is false, return None
             if let SetExpr::Select(select) = &new_body {
                 if let Some(SQLExpr::Value(ValueWithSpan {
                     value: Boolean(false),
@@ -54,7 +49,6 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                 }
             }
 
-            // Test the folded query
             let folded_query = Statement::Query(Box::new(Query {
                 body: Box::new(new_body.clone()),
                 with: q.with.clone(),
@@ -67,12 +61,10 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                 format_clause: q.format_clause.clone(),
             }));
 
-            // Convert the folded query to string and test it
             let query_str = folded_query.to_string();
             match test_query(&query_str) {
                 Ok(false) => Some(folded_query),
                 _ => {
-                    // If the fold failed, try the original query
                     let original_query = Statement::Query(Box::new(Query {
                         body: Box::new((*q.body).clone()),
                         with: q.with.clone(),
@@ -93,11 +85,9 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
             }
         }
         Statement::Insert(mut boxed_i) => {
-            // Extract and fold the source query if it exists
             if let Some(source) = boxed_i.source.take() {
                 let folded_body = fold_setexpr((*source.body).clone());
 
-                // Test the folded query
                 let folded_source = Query {
                     body: Box::new(folded_body.clone()),
                     with: source.with.clone(),
@@ -120,7 +110,6 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
                         Some(Statement::Insert(boxed_i))
                     }
                     _ => {
-                        // If the fold failed, try the original query
                         let original_source = Query {
                             body: Box::new((*source.body).clone()),
                             with: source.with.clone(),
@@ -153,17 +142,13 @@ fn fold_statement(stmt: Statement) -> Option<Statement> {
     }
 }
 
-/// Folds a set expression (SELECT, VALUES, etc.)
 fn fold_setexpr(setexpr: SetExpr) -> SetExpr {
     match setexpr {
         SetExpr::Select(mut select) => {
-            // Fold projection expressions
             select.projection = fold_projection(select.projection);
 
-            // Fold FROM clause expressions
             select.from = fold_from_clause(select.from);
 
-            // Fold WHERE clause expression
             if let Some(expr) = select.selection {
                 select.selection = Some(fold_expr(expr));
             }
@@ -185,7 +170,6 @@ fn fold_setexpr(setexpr: SetExpr) -> SetExpr {
     }
 }
 
-/// Folds projection expressions in a SELECT statement
 fn fold_projection(projection: Vec<SelectItem>) -> Vec<SelectItem> {
     projection
         .into_iter()
@@ -196,7 +180,6 @@ fn fold_projection(projection: Vec<SelectItem>) -> Vec<SelectItem> {
         .collect()
 }
 
-/// Folds expressions in the FROM clause
 fn fold_from_clause(
     from: Vec<sqlparser::ast::TableWithJoins>,
 ) -> Vec<sqlparser::ast::TableWithJoins> {
@@ -222,7 +205,6 @@ fn fold_from_clause(
         .collect()
 }
 
-/// Folds a numeric value, handling integer and floating point cases
 fn fold_numeric_value(value: f64) -> SQLExpr {
     if value.fract() == 0.0 {
         SQLExpr::Value(ValueWithSpan {
@@ -237,7 +219,6 @@ fn fold_numeric_value(value: f64) -> SQLExpr {
     }
 }
 
-/// Folds a unary operation
 fn fold_unary_op(op: UnaryOperator, expr: SQLExpr) -> SQLExpr {
     let inner = fold_expr(expr);
 
@@ -290,12 +271,10 @@ fn fold_unary_op(op: UnaryOperator, expr: SQLExpr) -> SQLExpr {
     }
 }
 
-/// Folds a binary operation
 fn fold_binary_op(left: SQLExpr, op: BinaryOperator, right: SQLExpr) -> SQLExpr {
     let l = fold_expr(left);
     let r = fold_expr(right);
 
-    // Handle boolean operations
     if let (
         SQLExpr::Value(ValueWithSpan {
             value: Boolean(lb), ..
@@ -321,7 +300,6 @@ fn fold_binary_op(left: SQLExpr, op: BinaryOperator, right: SQLExpr) -> SQLExpr 
         return SQLExpr::Value(Boolean(bool_result).with_empty_span());
     }
 
-    // Handle numeric operations
     if let (
         SQLExpr::Value(ValueWithSpan {
             value: Number(ls, _),
@@ -352,7 +330,6 @@ fn fold_binary_op(left: SQLExpr, op: BinaryOperator, right: SQLExpr) -> SQLExpr 
         }
     }
 
-    // Otherwise, reconstruct
     SQLExpr::BinaryOp {
         left: Box::new(l),
         op,
@@ -360,7 +337,6 @@ fn fold_binary_op(left: SQLExpr, op: BinaryOperator, right: SQLExpr) -> SQLExpr 
     }
 }
 
-/// Recursively folds an expression
 fn fold_expr(expr: SQLExpr) -> SQLExpr {
     match expr {
         SQLExpr::UnaryOp {
