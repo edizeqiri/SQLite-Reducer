@@ -1,4 +1,4 @@
-# Reducer
+# SQLite Reducer
 
 ## Build
 ### Docker
