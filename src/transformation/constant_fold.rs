@@ -6,7 +6,6 @@ use sqlparser::ast::{
     ValueWithSpan,
 };
 
-
 #[derive(Debug, Default)]
 pub struct ConstantFold;
 

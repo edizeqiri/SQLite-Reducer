@@ -24,9 +24,7 @@ pub fn reduce(current_ast: Vec<Statement>) -> Result<String, Box<dyn std::error:
                 query
             }
         },
-        Err(e) => {
-            query
-        }
+        Err(e) => query,
     };
 
     // get env QUICK_RUN, if it is true then dont run this
@@ -62,7 +60,6 @@ fn remove_table(queries: &Vec<Statement>) -> Result<Vec<Statement>, Box<dyn std:
         .iter()
         .filter_map(|stmt| stmt.get_create_table_name())
         .collect();
-
 
     let all_tables = delta_debug_stmt(table_names, 2, queries);
     info!("removed these tables: {:?}", all_tables);

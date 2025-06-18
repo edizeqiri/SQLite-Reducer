@@ -175,8 +175,7 @@ impl Statement {
                             self.original = "".to_string();
                         }
                     }
-                }
-                else if self.original.to_uppercase().contains("SELECT") {
+                } else if self.original.to_uppercase().contains("SELECT") {
                     if let Ok(mut select_stmt) =
                         crate::statements::parsers::parse_select_statement(&self.original)
                     {
